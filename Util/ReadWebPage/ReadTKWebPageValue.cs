@@ -66,7 +66,7 @@ namespace GetWebPageDate.Util
 
         private string fileName = "TK/";
 
-        private string username ;
+        private string username;
 
         private string password;
         ///// <summary>
@@ -553,7 +553,7 @@ namespace GetWebPageDate.Util
 
                 return info;
             }
-         
+
             return null;
         }
 
@@ -1264,7 +1264,7 @@ namespace GetWebPageDate.Util
                                                 UpdatePrice(item);
                                                 Thread.Sleep(random.Next(2, 5) * 1000);
                                             }
-                                            else if(sellItems[key].Type == "333")
+                                            else if (sellItems[key].Type == "333")
                                             {
                                                 UpdatePrice(item);
                                                 Thread.Sleep(random.Next(2, 5) * 1000);
@@ -1683,7 +1683,7 @@ namespace GetWebPageDate.Util
                 string findAppPostData = string.Format("appNum:{0}", item.ID);
                 request.HttpPost(findAppUrl, findAppPostData);
 
-                string url = string.Format("https://admin.tkyfw.com/Goods/complateInfo?cat_first=&cat_second=&cat_third=&approval_number={0}", item.ID);
+                string url = string.Format("https://admin.tkyfw.com/Goods/complateInfo?cat_first=&cat_second=&cat_third=&approval_number={0}", CommonFun.GetUrlEncode(item.ID));
 
                 string upNewItemUrl = "https://admin.tkyfw.com/Goods/findRepeatCheck";
 
@@ -2383,7 +2383,7 @@ namespace GetWebPageDate.Util
                                 {
                                     string totalPriceStr = tdMs[3].Value;
                                     decimal totalPrice = string.IsNullOrEmpty(totalPriceStr) ? 0 : Convert.ToDecimal(totalPriceStr);
-                                    if (totalPrice >= 50 && item.Type != "333") //  || items[key].PlatformPrice <= price)
+                                    if (totalPrice >= 50 && items[key].PlatformPrice <= price)//&& item.Type != "333"
                                     {
                                         result = true;
                                     }

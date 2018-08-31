@@ -29,7 +29,7 @@ namespace GetWebPageDate
                 ReadPlatFormWebPageValue readPlatform = new ReadPlatFormWebPageValue();
                 //readPlatform.Test();
                 //readPlatform.Start();
-                readPlatform.UpdatePrice();
+                //readPlatform.UpdatePrice();
                 #endregion
 
                 #region tk上架操作
@@ -38,7 +38,7 @@ namespace GetWebPageDate
                 //tkRead.UpdatePriceAndDown();
                 //tkRead.Test();
                 //tkRead.ReadAllMenuURL();
-                //tkRead.StartAutoGetOrder();
+                tkRead.StartAutoGetOrder();
                 //tkRead.Start();
                 //tkRead.DownNoMoneyItem();
                 //tkRead.UpNewByCSV();

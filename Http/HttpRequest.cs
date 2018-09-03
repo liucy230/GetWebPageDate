@@ -156,7 +156,7 @@ namespace GetWebPageDate.Http
                         sleepTime = 30 * 1000;
                     }
                     Thread.Sleep(sleepTime);
-                    if (ex.ToString().Contains("404") || ex.ToString().Contains("指定的值含有无效的控制字符"))
+                    if (ex.ToString().Contains("404") || ex.ToString().Contains("指定的值含有无效的控制字符") || ex.ToString().Contains("(500)"))
                     {
                         return null;
                     }

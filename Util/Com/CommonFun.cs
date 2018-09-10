@@ -960,5 +960,15 @@ namespace GetWebPageDate.Util
                 }
             }
         }
+
+        /// <summary>
+        /// 保留两位小数（两位后的全部舍掉）
+        /// </summary>
+        /// <param name="value"></param>
+        /// <returns></returns>
+        public static decimal TrunCate(decimal value)
+        {
+            return Math.Truncate(value * 100) / 100;
+        }
     }
 }

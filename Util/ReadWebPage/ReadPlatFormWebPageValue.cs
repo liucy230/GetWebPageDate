@@ -22,9 +22,9 @@ namespace GetWebPageDate.Util
     /// </summary>
     public class ReadPlatFormWebPageValue : BaseReadWebPage
     {
-        private string username ;
+        private string username;
 
-        private string password ;
+        private string password;
 
         private int finishCount;
 
@@ -253,7 +253,7 @@ namespace GetWebPageDate.Util
                         string inventoryStr = CommonFun.GetValue(m.Value, "<label class=\"sreserve\">", "</label>");
                         string priceStr = CommonFun.GetValue(m.Value, "¥", "<");
                         string storeName = CommonFun.GetValue(m.Value, "主页\">", "</a>");
-                        
+
                         if (!string.IsNullOrEmpty(inventoryStr) && !string.IsNullOrEmpty(priceStr) && !IsBlacklistStore(storeName) && storeName != selfName)
                         {
                             if (Convert.ToInt32(inventoryStr) > inventoryMin)
@@ -284,14 +284,14 @@ namespace GetWebPageDate.Util
                                 {
                                     selaStr = CommonFun.GetValue(m.Value, "返现", "元");
 
-                                    if(!string.IsNullOrEmpty(selaStr))
+                                    if (!string.IsNullOrEmpty(selaStr))
                                     {
                                         info.ReturnPrice = Convert.ToDecimal(selaStr);
                                     }
                                 }
 
                                 info.ShopPrice = string.IsNullOrEmpty(priceStr) ? 0 : Convert.ToDecimal(priceStr);
-                                info.ShopSelaPrice = Math.Round(info.ShopPrice * (info.Sela / 10) - info.ReturnPrice, 2, MidpointRounding.AwayFromZero);
+                                info.ShopSelaPrice = CommonFun.TrunCate(info.ShopPrice * (info.Sela / 10) - info.ReturnPrice);
                                 info.Inventory = inventoryStr;
                                 // SetMenuInfo(info, content);
 
@@ -719,7 +719,7 @@ namespace GetWebPageDate.Util
         public override void Login()
         {
             string login_url = "https://reg.yaofangwang.com/login.aspx";
-            string postDataStr = string.Format( "__EVENTTARGET=ctl00%24ContentPlaceHolder1%24t_login&__EVENTARGUMENT=&__VIEWSTATE=%2FwEPDwUINDE0MjQ5NzVkGAEFHl9fQ29udHJvbHNSZXF1aXJlUG9zdEJhY2tLZXlfXxYBBSVjdGwwMCRDb250ZW50UGxhY2VIb2xkZXIxJGNiX1JlbWVtYmVyfMPsdmjZlfvGbCxOD8u0r%2FRLbA8%3D&__VIEWSTATEGENERATOR=C2EE9ABB&__EVENTVALIDATION=%2FwEdAAosVaXMhV4q7s19NxAQU1EA%2FX3Fo%2FRaqYiLtErA%2B0XLEhccBLe9MIf%2BOeu1SwHT%2Fo2ng0PqTUAPaPYHk4tr%2FTPfKqmCwJguV16MgvgQAIOIM5gCICnqqodEefzHnITuNvGKN2iu4q6IDCzyu2cVK%2B2X9v9Eq8t4s5ZZ5SNoKNrRyao0KorV0rlA31R%2FnAfLx9YONrIXtTlQ%2FOFtaven3EmBxJNqndFqhuABr6rHIEGR90USvzc%3D&ctl00%24ContentPlaceHolder1%24txt_AccountName={0}&ctl00%24ContentPlaceHolder1%24txt_Password={1}&ctl00%24ContentPlaceHolder1%24txt_ValidateCode=&ctl00%24ContentPlaceHolder1%24txt_Mobile=&ctl00%24ContentPlaceHolder1%24txt_ValidateCode1=&ctl00%24ContentPlaceHolder1%24txtMobileCode=&ctl00%24ContentPlaceHolder1%24hf_type=default", username, password);
+            string postDataStr = string.Format("__EVENTTARGET=ctl00%24ContentPlaceHolder1%24t_login&__EVENTARGUMENT=&__VIEWSTATE=%2FwEPDwUINDE0MjQ5NzVkGAEFHl9fQ29udHJvbHNSZXF1aXJlUG9zdEJhY2tLZXlfXxYBBSVjdGwwMCRDb250ZW50UGxhY2VIb2xkZXIxJGNiX1JlbWVtYmVyfMPsdmjZlfvGbCxOD8u0r%2FRLbA8%3D&__VIEWSTATEGENERATOR=C2EE9ABB&__EVENTVALIDATION=%2FwEdAAosVaXMhV4q7s19NxAQU1EA%2FX3Fo%2FRaqYiLtErA%2B0XLEhccBLe9MIf%2BOeu1SwHT%2Fo2ng0PqTUAPaPYHk4tr%2FTPfKqmCwJguV16MgvgQAIOIM5gCICnqqodEefzHnITuNvGKN2iu4q6IDCzyu2cVK%2B2X9v9Eq8t4s5ZZ5SNoKNrRyao0KorV0rlA31R%2FnAfLx9YONrIXtTlQ%2FOFtaven3EmBxJNqndFqhuABr6rHIEGR90USvzc%3D&ctl00%24ContentPlaceHolder1%24txt_AccountName={0}&ctl00%24ContentPlaceHolder1%24txt_Password={1}&ctl00%24ContentPlaceHolder1%24txt_ValidateCode=&ctl00%24ContentPlaceHolder1%24txt_Mobile=&ctl00%24ContentPlaceHolder1%24txt_ValidateCode1=&ctl00%24ContentPlaceHolder1%24txtMobileCode=&ctl00%24ContentPlaceHolder1%24hf_type=default", username, password);
 
             request.Login(login_url, postDataStr);
 
@@ -769,7 +769,7 @@ namespace GetWebPageDate.Util
 
                         if (minPrice > 0 && minPrice != item.ShopPrice)
                         {
-                            item.PlatformPrice = Math.Round(minPrice, 2, MidpointRounding.AwayFromZero);
+                            item.PlatformPrice = CommonFun.TrunCate(minPrice);
                             if (opt)
                             {
                                 OptUpdatePrice(item);
@@ -789,7 +789,7 @@ namespace GetWebPageDate.Util
 
                         if (minPrice > 0 && minPrice != item.ShopPrice)
                         {
-                            item.PlatformPrice = Math.Round(minPrice, 2, MidpointRounding.AwayFromZero);
+                            item.PlatformPrice = CommonFun.TrunCate(minPrice);
 
                             if (opt)
                             {
@@ -811,7 +811,7 @@ namespace GetWebPageDate.Util
             {
                 if (doCount == 1)
                 {
-                    item.PlatformPrice = Math.Round(item.ShopPrice * (decimal)0.99, 2, MidpointRounding.AwayFromZero);
+                    item.PlatformPrice = CommonFun.TrunCate(item.ShopPrice * (decimal)0.99);
                 }
 
                 result = UpdateItemInfo(item);
@@ -852,7 +852,7 @@ namespace GetWebPageDate.Util
 
                                 if (minPrice > 0 && minPrice != item.ShopPrice)
                                 {
-                                    item.PlatformPrice = Math.Round(minPrice, 2, MidpointRounding.AwayFromZero);
+                                    item.PlatformPrice = CommonFun.TrunCate(minPrice);
                                     if (opt)
                                     {
                                         OptUpdatePrice(item);
@@ -872,7 +872,7 @@ namespace GetWebPageDate.Util
 
                                 if (minPrice > 0 && minPrice != item.ShopPrice)
                                 {
-                                    item.PlatformPrice = Math.Round(minPrice, 2, MidpointRounding.AwayFromZero);
+                                    item.PlatformPrice = CommonFun.TrunCate(minPrice);
 
                                     if (opt)
                                     {

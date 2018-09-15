@@ -852,13 +852,21 @@ namespace GetWebPageDate.Util
 
                                 if (minPrice > 0 && minPrice != item.ShopPrice)
                                 {
-                                    item.PlatformPrice = CommonFun.TrunCate(minPrice);
-                                    if (opt)
+                                    if(item.ShopPrice * 0.9M < minPrice)
                                     {
-                                        OptUpdatePrice(item);
+                                        item.PlatformPrice = CommonFun.TrunCate(minPrice);
+                                        if (opt)
+                                        {
+                                            OptUpdatePrice(item);
+                                        }
+                                        Thread.Sleep(random.Next(5) * 1000);
+                                        CommonFun.WriteCSV("YF/updatePriceUpFive" + ticks + fileExtendName, item);
                                     }
-                                    Thread.Sleep(random.Next(5) * 1000);
-                                    CommonFun.WriteCSV("YF/updatePriceUpFive" + ticks + fileExtendName, item);
+                                    else
+                                    {
+                                        item.PlatformPrice = CommonFun.TrunCate(minPrice);
+                                        CommonFun.WriteCSV(fileName + "ToolowerPrice" + ticks + ".csv", item);
+                                    }
                                 }
                             }
                         }

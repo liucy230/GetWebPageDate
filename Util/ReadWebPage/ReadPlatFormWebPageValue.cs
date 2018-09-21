@@ -38,6 +38,8 @@ namespace GetWebPageDate.Util
 
         private string selfName = "佛山市南海区品珍药店";
 
+        private int waitTime = 3000;
+
         public ReadPlatFormWebPageValue()
         {
             string userInfo1 = ConfigurationManager.AppSettings["yfUsernameAndPossword1"];
@@ -618,6 +620,25 @@ namespace GetWebPageDate.Util
             }
         }
 
+        /// <summary>
+        /// 上架新品
+        /// </summary>
+        public void UpNowItem(BaseItemInfo item)
+        {
+            try
+            {
+                string sUrl = string.Format("https://yaodian.yaofangwang.com/Manage/Handler/Handler.ashx?method=GetMedicineListByAuthorizedCode&AuthorizedCode={0}&s=1536995477", item.ID); //get
+
+                string subUrl = "https://yaodian.yaofangwang.com/Manage/Products/productAdd.aspx";//post
+
+
+
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex);
+            }
+        }
         private void SetMenuInfo(ItemInfo info, string content)
         {
             string menuStr = CommonFun.GetValue(content, "breadcrumb", "</div>");
@@ -803,6 +824,232 @@ namespace GetWebPageDate.Util
             }
         }
 
+        /// <summary>
+        /// 处理订单
+        /// </summary>
+        public void OptPrescription()
+        {
+            try
+            {
+                int page = 1;
+                int totalPage = 0;
+
+                do
+                {
+                    try
+                    {
+                        string sUrl = string.Format("http://yaodian.yaofangwang.com/Manage/Sell/Order.aspx?status=AUDIT&page={0}", page);
+
+                        string content = request.HttpGet(sUrl);
+
+                        if (totalPage == 0)
+                        {
+                            string totalPageStr = CommonFun.GetValue(content, "条，共", "页，");
+
+                            totalPage = Convert.ToInt32(totalPageStr);
+                        }
+
+                        Console.WriteLine("Running OptPrescription totalPage:{0} page:{1}", totalPage, page);
+
+                        Dictionary<string, string> orderDic = new Dictionary<string, string>();
+                        GetOrderNOAndDesc(content, orderDic, false);
+
+                        foreach (string orderNO in orderDic.Keys)
+                        {
+                            string subUrl = "http://yaodian.yaofangwang.com/Manage/Handler/Handler.ashx";
+
+                            string postData = string.Format("method=CustomerRxAuditResult&orderno={0}&audit=1&auditContent=%E5%A4%84%E6%96%B9%E7%85%A7%E7%89%87%E7%AC%A6%E5%90%88%E8%A6%81%E6%B1%82%E8%A7%84%E8%8C%83", orderNO);
+
+                            string result = request.HttpPost(subUrl, postData);
+
+                            if (result != "True")
+                            {
+                                Console.WriteLine(result + orderNO + "...........");
+                            }
+
+                            Console.WriteLine("{0} OptPrescription orderNO:{1}", DateTime.Now, orderNO);
+
+                            Thread.Sleep(waitTime);
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine(ex);
+                    }
+
+                } while (++page <= totalPage);
+
+
+
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex);
+            }
+        }
+
+        private string GetCreateDate()
+        {
+            DateTime date = DateTime.Now.AddMonths(-6);
+
+            return date.ToString("yyyy-MM-dd");
+        }
+
+        private void GetOrderNOAndDesc(string content, Dictionary<string, string> orderDic, bool isGetDesc = true)
+        {
+            try
+            {
+                MatchCollection ms = CommonFun.GetValues(content, "<td class=\"bl0 qizi\">", "</td>");
+
+                foreach (Match m in ms)
+                {
+                    if (isGetDesc)
+                    {
+                        string state = CommonFun.GetValue(m.Value, "rank='", "'");
+
+                        if (!string.IsNullOrEmpty(state) && state == "00")
+                        {
+                            string desc = CommonFun.GetValue(m.Value, "desc='", "'");
+
+                            if (!string.IsNullOrEmpty(desc))
+                            {
+                                string orderNO = CommonFun.GetValue(m.Value, "par_orderno='", "'");
+                                if (desc.Length == 12 && desc == CommonFun.GetNum(desc))
+                                {
+                                    orderDic.Add(orderNO, desc);
+                                }
+                                else
+                                {
+                                    Console.WriteLine("{0} Desc Error orderNO:{1} desc:{2}", DateTime.Now, orderNO, desc);
+                                }
+                            }
+                        }
+                    }
+                    else
+                    {
+                        string orderNO = CommonFun.GetValue(m.Value, "par_orderno='", "'");
+                        orderDic.Add(orderNO, "");
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex);
+            }
+        }
+
+        public void OptOrder()
+        {
+            Login(true);
+
+            //while(true)
+            //{
+            OptPrescription();
+
+            OptLogistics();
+
+            Console.WriteLine("{0} Finished.......................................", DateTime.Now);
+
+            //Thread.Sleep(10 * 60 * 1000);
+            //}
+        }
+
+        /// <summary>
+        /// 处理物流信息
+        /// </summary>
+        /// <returns></returns>
+        public void OptLogistics()
+        {
+            try
+            {
+
+                Dictionary<string, string> orderList = new Dictionary<string, string>();
+                int page = 1;
+                int totalPage = 0;
+                do
+                {
+                    try
+                    {
+                        string sUrl = string.Format("http://yaodian.yaofangwang.com/Manage/Sell/Order.aspx?status=PAID&page={0}", page);
+
+                        string content = request.HttpGet(sUrl);
+
+                        if (totalPage == 0)
+                        {
+                            string totalPageStr = CommonFun.GetValue(content, "条，共", "页，");
+
+                            totalPage = Convert.ToInt32(totalPageStr);
+                        }
+
+                        Console.WriteLine("Running OptLogistics totalPage:{0} page:{1}", totalPage, page);
+
+                        GetOrderNOAndDesc(content, orderList);
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine(ex);
+                    }
+                } while (++page <= totalPage);
+
+                foreach (string orderNO in orderList.Keys)
+                {
+                    try
+                    {
+                        string tUrl = string.Format("https://yaodian.yaofangwang.com/Manage/Sell/OrderSend.aspx?OrderNo={0}", orderNO);
+
+                        string content = request.HttpGet(tUrl);
+
+                        if (!content.Contains("确认发货"))
+                        {
+                            OptPrescription();
+                            content = request.HttpGet(tUrl);
+                        }
+
+                        string viewState = CommonFun.GetUrlEncode(CommonFun.GetValue(content, "id=\"__VIEWSTATE\" value=\"", "\""), false);
+
+                        string generator = CommonFun.GetValue(content, "id=\"__VIEWSTATEGENERATOR\" value=\"", "\"");
+
+                        List<string> dateStr = new List<string>();
+
+                        List<string> orderNOStr = new List<string>();
+
+                        content = CommonFun.GetValue(content, "<div class=\"bg-white \">", "确认发货");
+
+                        MatchCollection ms = CommonFun.GetValues(content, "<div class=\"form-group input-inline  mb10\">", "</div>");
+
+                        foreach (Match m in ms)
+                        {
+                            orderNOStr.Add(CommonFun.GetValue(m.Value, "parsl='", "'"));
+                            dateStr.Add(GetCreateDate() + "," + CommonFun.GetValue(m.Value, " value='", "'"));
+
+                            //C809201313164538-1#C809201313164538-2@2018-03-20,1#2018-06-20,5
+                        }
+
+                        string datePostStr = string.Join("#", orderNOStr.ToArray()) + "@" + string.Join("#", dateStr.ToArray());
+
+                        string postData = string.Format("__EVENTTARGET=ctl00%24cph_content%24btn_Send&__EVENTARGUMENT=&__VIEWSTATE={0}&__VIEWSTATEGENERATOR={1}&ctl00%24cph_content%24hf_productnoandcustomerordermedicineno={2}&ctl00%24cph_content%24ddl_Logistics=2&ctl00%24cph_content%24txt_OrderWebNumber={3}&ctl00%24cph_content%24txt_InvoiceNo=&ctl00%24cph_content%24txt_code=&sendAddress=rb_Address&ctl00%24cph_content%24hf_AddressId={4}&returnAddress=rb_Address&ctl00%24cph_content%24hf_returnAddressId={5}&ctl00%24cph_content%24stype=0", viewState, generator, CommonFun.GetUrlEncode(datePostStr, false), orderList[orderNO], 1048, 2374);
+
+                        string subUrl = string.Format("https://yaodian.yaofangwang.com/Manage/Sell/OrderSend.aspx?OrderNo={0}", orderNO);
+
+                        string result = request.HttpPost(subUrl, postData);
+
+                        Console.WriteLine("{0} OptLogistics orderNO:{1}, desc:{2}", DateTime.Now, orderNO, orderList[orderNO]);
+
+                        Thread.Sleep(waitTime);
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine(ex);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex);
+            }
+
+        }
+
         public bool OptUpdatePrice(BaseItemInfo item)
         {
             int doCount = 0;
@@ -818,6 +1065,24 @@ namespace GetWebPageDate.Util
             } while (++doCount < 2 && !result);
 
             return result;
+        }
+
+        public int GetClickingRate(BaseItemInfo item)
+        {
+            try
+            {
+                string content = request.HttpGet("http://www.yaofangwang.com/medicine-" + item.ItemName + ".html?sort=price&sorttype=asc", null, true);
+
+                string clickingRateStr = CommonFun.GetValue(content, "<dt>最近浏览</dt><dd class=\"w1\">", "次");
+
+                return string.IsNullOrEmpty(clickingRateStr) ? 0 : Convert.ToInt32(clickingRateStr);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex);
+            }
+
+            return 0;
         }
 
         public void UpdatePrice()
@@ -842,52 +1107,57 @@ namespace GetWebPageDate.Util
 
                     if (IsInTypeList(item.Type))
                     {
-                        if (Convert.ToInt16(item.Inventory) > Convert.ToInt16(minStockList[0]))
+                        int iClickingRate = GetClickingRate(item);
+
+                        decimal minPrice = decimal.MaxValue;
+
+                        int stock = minStock;
+
+                        string iFileName = "YF/updatePriceUpFive";
+
+                        decimal diffPrice = lPrice;
+
+                        bool isLimitDown = true;
+
+                        if (iClickingRate >= clickingRate)
                         {
-                            decimal minPrice = GetMinPrice(item, 10);
-
-                            if (minPrice != decimal.MaxValue)
+                            if (Convert.ToInt16(item.Inventory) <= Convert.ToInt16(minStockList[0]))
                             {
-                                minPrice = minPrice - lPrice;
-
-                                if (minPrice > 0 && minPrice != item.ShopPrice)
-                                {
-                                    if(item.ShopPrice * 0.9M < minPrice)
-                                    {
-                                        item.PlatformPrice = CommonFun.TrunCate(minPrice);
-                                        if (opt)
-                                        {
-                                            OptUpdatePrice(item);
-                                        }
-                                        Thread.Sleep(random.Next(5) * 1000);
-                                        CommonFun.WriteCSV("YF/updatePriceUpFive" + ticks + fileExtendName, item);
-                                    }
-                                    else
-                                    {
-                                        item.PlatformPrice = CommonFun.TrunCate(minPrice);
-                                        CommonFun.WriteCSV(fileName + "ToolowerPrice" + ticks + ".csv", item);
-                                    }
-                                }
+                                stock = 0;
+                                iFileName = "YF/updatePriceLowFive";
+                                diffPrice = Convert.ToDecimal(minStockList[1]);
+                                isLimitDown = false;
                             }
                         }
                         else
                         {
-                            decimal minPrice = GetMinPrice(item, 0);
+                            stock = 0;
+                        }
 
-                            if (minPrice != decimal.MaxValue)
+                        minPrice = GetMinPrice(item, stock);
+
+                        if (minPrice != decimal.MaxValue)
+                        {
+                            minPrice = minPrice - diffPrice;
+
+                            if (minPrice > 0 && minPrice != item.ShopPrice)
                             {
-                                minPrice = minPrice - Convert.ToDecimal(minStockList[1]);
+                                decimal temp = item.ShopPrice * (100 - minDownRate) / 100M;
 
-                                if (minPrice > 0 && minPrice != item.ShopPrice)
+                                if (!isLimitDown || item.ShopPrice * (100 - minDownRate) / 100M < minPrice)
                                 {
                                     item.PlatformPrice = CommonFun.TrunCate(minPrice);
-
                                     if (opt)
                                     {
                                         OptUpdatePrice(item);
                                     }
                                     Thread.Sleep(random.Next(5) * 1000);
-                                    CommonFun.WriteCSV("YF/updatePriceLowFive" + ticks + fileExtendName, item);
+                                    CommonFun.WriteCSV(iFileName + ticks + fileExtendName, item);
+                                }
+                                else
+                                {
+                                    item.PlatformPrice = CommonFun.TrunCate(minPrice);
+                                    CommonFun.WriteCSV(fileName + "ToolowerPrice" + ticks + ".csv", item);
                                 }
                             }
                         }

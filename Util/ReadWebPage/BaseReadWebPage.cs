@@ -131,6 +131,12 @@ namespace GetWebPageDate.Util
 
         protected decimal lPrice;
 
+        protected int minStock;
+
+        protected int clickingRate;
+
+        protected int minDownRate;
+
         public BaseReadWebPage()
         {
             unloadList = GetConfigList("nameKey");
@@ -148,6 +154,18 @@ namespace GetWebPageDate.Util
             string lPriceStr = ConfigurationManager.AppSettings["lPriceKey"];
 
             lPrice = string.IsNullOrEmpty(lPriceStr) ? (decimal)0 : Convert.ToDecimal(lPriceStr);
+
+            string minStockStr = ConfigurationManager.AppSettings["stockKey"];
+
+            minStock = string.IsNullOrEmpty(minStockStr) ? 10 : Convert.ToInt32(minStockStr);
+
+            string clickingRateStr = ConfigurationManager.AppSettings["clickingRateKey"];
+
+            clickingRate = string.IsNullOrEmpty(clickingRateStr) ? 100 : Convert.ToInt32(clickingRateStr);
+
+             string minDownRateStr = ConfigurationManager.AppSettings["minDownRateKey"];
+
+             minDownRate = string.IsNullOrEmpty(minDownRateStr) ? 100 : Convert.ToInt32(minDownRateStr);
 
             unUpdate = ReadXlsItems("KTUnUpdate.xlsx");
 

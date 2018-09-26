@@ -137,6 +137,10 @@ namespace GetWebPageDate.Util
 
         protected int minDownRate;
 
+        protected int spcMinDownRate;
+
+        protected List<string> spcTypeList;
+
         public BaseReadWebPage()
         {
             unloadList = GetConfigList("nameKey");
@@ -150,6 +154,8 @@ namespace GetWebPageDate.Util
             typeList = GetConfigList("typeKey");
 
             minStockList = GetConfigList("minStockKey", true);
+
+            spcTypeList = GetConfigList("spcTypeKey");
 
             string lPriceStr = ConfigurationManager.AppSettings["lPriceKey"];
 
@@ -166,6 +172,10 @@ namespace GetWebPageDate.Util
              string minDownRateStr = ConfigurationManager.AppSettings["minDownRateKey"];
 
              minDownRate = string.IsNullOrEmpty(minDownRateStr) ? 100 : Convert.ToInt32(minDownRateStr);
+
+             string spcMinDownRateStr = ConfigurationManager.AppSettings["spcMinDownRateKey"];
+
+             spcMinDownRate = string.IsNullOrEmpty(spcMinDownRateStr) ? 100 : Convert.ToInt32(spcMinDownRateStr);
 
             unUpdate = ReadXlsItems("KTUnUpdate.xlsx");
 
@@ -335,6 +345,16 @@ namespace GetWebPageDate.Util
         protected bool IsInTypeList(string type)
         {
             return typeList.Contains(type);
+        }
+
+        /// <summary>
+        /// 是否在特殊列表中
+        /// </summary>
+        /// <param name="type"></param>
+        /// <returns></returns>
+        public bool IsInSpcTypeList(string type)
+        {
+            return spcTypeList.Contains(type);
         }
 
         public void ReadAllItemUrl(string fileName)

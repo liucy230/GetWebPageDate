@@ -1085,6 +1085,38 @@ namespace GetWebPageDate.Util
             return 0;
         }
 
+        /// <summary>
+        /// 执行价格修改操作
+        /// </summary>
+        /// <param name="minPrice"></param>
+        /// <param name="item"></param>
+        private void OptUpdatePrice(decimal minPrice, BaseItemInfo item, decimal diffPrice, bool opt, bool isLimitDown, string iFileName, int downRate)
+        {
+            if (minPrice != decimal.MaxValue)
+            {
+                minPrice = minPrice - diffPrice;
+
+                if (minPrice > 0 && minPrice != item.ShopPrice)
+                {
+                    if (!isLimitDown || item.ShopPrice * (100 - downRate) / 100M < minPrice)
+                    {
+                        item.PlatformPrice = CommonFun.TrunCate(minPrice);
+                        if (opt)
+                        {
+                            OptUpdatePrice(item);
+                        }
+                        Thread.Sleep(random.Next(5) * 1000);
+                        CommonFun.WriteCSV(iFileName + ticks + fileExtendName, item);
+                    }
+                    else
+                    {
+                        item.PlatformPrice = CommonFun.TrunCate(minPrice);
+                        CommonFun.WriteCSV(fileName + "ToolowerPrice" + ticks + ".csv", item);
+                    }
+                }
+            }
+        }
+
         public void UpdatePrice()
         {
             try
@@ -1105,7 +1137,15 @@ namespace GetWebPageDate.Util
                     //    continue;
                     //}
 
-                    if (IsInTypeList(item.Type))
+                    if (IsInSpcTypeList(item.Type))
+                    {
+                        decimal minPrice = decimal.MaxValue;
+
+                        minPrice = GetMinPrice(item, 0);
+
+                        OptUpdatePrice(minPrice, item, lPrice, opt, true, "YF/updatePriceSpc", spcMinDownRate);
+                    }
+                    else if (IsInTypeList(item.Type))
                     {
                         int iClickingRate = GetClickingRate(item);
 
@@ -1136,31 +1176,7 @@ namespace GetWebPageDate.Util
 
                         minPrice = GetMinPrice(item, stock);
 
-                        if (minPrice != decimal.MaxValue)
-                        {
-                            minPrice = minPrice - diffPrice;
-
-                            if (minPrice > 0 && minPrice != item.ShopPrice)
-                            {
-                                decimal temp = item.ShopPrice * (100 - minDownRate) / 100M;
-
-                                if (!isLimitDown || item.ShopPrice * (100 - minDownRate) / 100M < minPrice)
-                                {
-                                    item.PlatformPrice = CommonFun.TrunCate(minPrice);
-                                    if (opt)
-                                    {
-                                        OptUpdatePrice(item);
-                                    }
-                                    Thread.Sleep(random.Next(5) * 1000);
-                                    CommonFun.WriteCSV(iFileName + ticks + fileExtendName, item);
-                                }
-                                else
-                                {
-                                    item.PlatformPrice = CommonFun.TrunCate(minPrice);
-                                    CommonFun.WriteCSV(fileName + "ToolowerPrice" + ticks + ".csv", item);
-                                }
-                            }
-                        }
+                        OptUpdatePrice(minPrice, item, diffPrice, opt, isLimitDown, iFileName, minDownRate);                        
                     }
                 }
             }

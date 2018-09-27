@@ -40,6 +40,8 @@ namespace GetWebPageDate.Util
 
         private int waitTime = 3000;
 
+        private string downTime = "7:00-19:00";
+
         public ReadPlatFormWebPageValue()
         {
             string userInfo1 = ConfigurationManager.AppSettings["yfUsernameAndPossword1"];
@@ -1117,6 +1119,115 @@ namespace GetWebPageDate.Util
             }
         }
 
+        /// <summary>
+        /// 自动上架
+        /// </summary>
+        public void AutoUpDown()
+        {
+            try
+            {
+                bool isDown = false;
+                bool isUp = false;
+                while (true)
+                {
+                    try
+                    {
+                        if (CommonFun.IsInTimeRange(downTime))
+                        {
+                            if (!isDown)
+                            {
+                                Dictionary<string, BaseItemInfo> items = GetSellingItems();
+
+                                foreach (BaseItemInfo item in items.Values)
+                                {
+                                    if (IsInAutoUpDownTypeList(item.Type))
+                                    {
+                                        DownItem(item);
+                                    }
+                                }
+                                isDown = true;
+                                isUp = false;
+                            }
+                        }
+                        else
+                        {
+                            if (!isUp)
+                            {
+                                Dictionary<string, BaseItemInfo> items = GetDownItems();
+                                foreach (BaseItemInfo item in items.Values)
+                                {
+                                    if (IsInAutoUpDownTypeList(item.Type))
+                                    {
+                                        UpItem(item);
+                                    }
+                                }
+
+                                isUp = true;
+                                isDown = false;
+                            }
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine(ex);
+                    }
+                    Thread.Sleep(60 * 1000);
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex);
+            }
+        }
+
+        /// <summary>
+        /// 下架物品
+        /// </summary>
+        /// <param name="item"></param>
+        public void DownItem(BaseItemInfo item)
+        {
+            try
+            {
+                item.PlatformPrice = item.ShopPrice;
+                if (UpdateItemInfo(item, "-999"))
+                {
+                    CommonFun.WriteCSV("YF/downSuccess" + ticks + fileExtendName, item);
+                }
+                else
+                {
+                    CommonFun.WriteCSV("YF/downFailed" + ticks + fileExtendName, item);
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex);
+            }
+        }
+
+        /// <summary>
+        /// 上架物品
+        /// </summary>
+        /// <param name="item"></param>
+        public void UpItem(BaseItemInfo item)
+        {
+            try
+            {
+                item.PlatformPrice = item.ShopPrice;
+                if (UpdateItemInfo(item, "1"))
+                {
+                    CommonFun.WriteCSV("YF/upSuccess" + ticks + fileExtendName, item);
+                }
+                else
+                {
+                    CommonFun.WriteCSV("YF/upFailed" + ticks + fileExtendName, item);
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex);
+            }
+        }
+
         public void UpdatePrice()
         {
             try
@@ -1125,58 +1236,81 @@ namespace GetWebPageDate.Util
 
                 bool opt = true;
 
-                Dictionary<string, BaseItemInfo> sItems = GetSellingItems();
+                Thread autoUpDownThread = new Thread(AutoUpDown);
+                autoUpDownThread.Start();
 
-                int count = 0;
-                foreach (BaseItemInfo item in sItems.Values)
+                DateTime startTime = DateTime.MinValue;
+
+                while (true)
                 {
-                    Console.WriteLine("{2} Updating totaoCount:{0} curCount:{1}", sItems.Count, ++count, DateTime.Now);
-
-                    //if (item.ID != "国药准字Z20080047")
-                    //{
-                    //    continue;
-                    //}
-
-                    if (IsInSpcTypeList(item.Type))
+                    try
                     {
-                        decimal minPrice = decimal.MaxValue;
-
-                        minPrice = GetMinPrice(item, 0);
-
-                        OptUpdatePrice(minPrice, item, lPrice, opt, true, "YF/updatePriceSpc", spcMinDownRate);
-                    }
-                    else if (IsInTypeList(item.Type))
-                    {
-                        int iClickingRate = GetClickingRate(item);
-
-                        decimal minPrice = decimal.MaxValue;
-
-                        int stock = minStock;
-
-                        string iFileName = "YF/updatePriceUpFive";
-
-                        decimal diffPrice = lPrice;
-
-                        bool isLimitDown = true;
-
-                        if (iClickingRate >= clickingRate)
+                        if ((DateTime.Now - startTime).Hours > 2)
                         {
-                            if (Convert.ToInt16(item.Inventory) <= Convert.ToInt16(minStockList[0]))
+                            startTime = DateTime.Now;
+
+                            ticks = startTime.Ticks;
+
+                            Dictionary<string, BaseItemInfo> sItems = GetSellingItems();
+
+                            int count = 0;
+                            foreach (BaseItemInfo item in sItems.Values)
                             {
-                                stock = 0;
-                                iFileName = "YF/updatePriceLowFive";
-                                diffPrice = Convert.ToDecimal(minStockList[1]);
-                                isLimitDown = false;
+                                Console.WriteLine("{2} Updating totaoCount:{0} curCount:{1}", sItems.Count, ++count, DateTime.Now);
+
+                                //if (item.ID != "国药准字Z20080047")
+                                //{
+                                //    continue;
+                                //}
+
+                                if (IsInSpcTypeList(item.Type))
+                                {
+                                    decimal minPrice = decimal.MaxValue;
+
+                                    minPrice = GetMinPrice(item, 0);
+
+                                    OptUpdatePrice(minPrice, item, lPrice, opt, true, "YF/updatePriceSpc", spcMinDownRate);
+                                }
+                                else if (IsInTypeList(item.Type))
+                                {
+                                    int iClickingRate = GetClickingRate(item);
+
+                                    decimal minPrice = decimal.MaxValue;
+
+                                    int stock = minStock;
+
+                                    string iFileName = "YF/updatePriceUpFive";
+
+                                    decimal diffPrice = lPrice;
+
+                                    bool isLimitDown = true;
+
+                                    if (iClickingRate >= clickingRate)
+                                    {
+                                        if (Convert.ToInt16(item.Inventory) <= Convert.ToInt16(minStockList[0]))
+                                        {
+                                            stock = 0;
+                                            iFileName = "YF/updatePriceLowFive";
+                                            diffPrice = Convert.ToDecimal(minStockList[1]);
+                                            isLimitDown = false;
+                                        }
+                                    }
+                                    else
+                                    {
+                                        stock = 0;
+                                    }
+
+                                    minPrice = GetMinPrice(item, stock);
+
+                                    OptUpdatePrice(minPrice, item, diffPrice, opt, isLimitDown, iFileName, minDownRate);
+                                }
                             }
+                            
                         }
-                        else
-                        {
-                            stock = 0;
-                        }
-
-                        minPrice = GetMinPrice(item, stock);
-
-                        OptUpdatePrice(minPrice, item, diffPrice, opt, isLimitDown, iFileName, minDownRate);                        
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine(ex);
                     }
                 }
             }
@@ -1226,7 +1360,7 @@ namespace GetWebPageDate.Util
             return items;
         }
 
-        public bool UpdateItemInfo(BaseItemInfo item)
+        public bool UpdateItemInfo(BaseItemInfo item, string status = null)
         {
             try
             {
@@ -1242,8 +1376,10 @@ namespace GetWebPageDate.Util
 
                     JObject obj = (JObject)aj[0];
 
+                    status = string.IsNullOrEmpty(status) ? obj["Status"].ToString() : status;
+
                     string url = string.Format("https://yaodian.yaofangwang.com/Manage/Handler/Handler.ashx?method=SaveFastEditMedicineInfo&smid={0}&price={1}&xnReserve={2}&discount={3}&sprice=&sdiscount={4}&weight={5}&isdiscount={6}&Status={7}&iserp={8}&scheduleddays={9}",
-                        item.ViewCount, item.PlatformPrice, item.Inventory, 10, 10, obj["mWeight"].ToString() == "0" ? obj["Weight"] : obj["mWeight"], 0, obj["Status"], obj["IsErp"].ToString() == "0" ? false : true, obj["ScheduledDays"]);
+                        item.ViewCount, item.PlatformPrice, item.Inventory, 10, 10, obj["mWeight"].ToString() == "0" ? obj["Weight"] : obj["mWeight"], 0, status, obj["IsErp"].ToString() == "0" ? false : true, obj["ScheduledDays"]);
 
                     content = request.HttpGet(url, null, true);
 
@@ -1268,10 +1404,28 @@ namespace GetWebPageDate.Util
         }
 
         /// <summary>
+        /// 获取主动下架列表
+        /// </summary>
+        /// <returns></returns>
+        public Dictionary<string, BaseItemInfo> GetDownItems()
+        {
+            return GetItemsByStatus(-999);
+        }
+
+        /// <summary>
         /// 获取在售列表
         /// </summary>
         /// <returns></returns>
         public Dictionary<string, BaseItemInfo> GetSellingItems()
+        {
+            return GetItemsByStatus(1);
+        }
+
+        /// <summary>
+        /// 获取物品列表
+        /// </summary>
+        /// <returns></returns>
+        public Dictionary<string, BaseItemInfo> GetItemsByStatus(int status)
         {
             Dictionary<string, BaseItemInfo> items = new Dictionary<string, BaseItemInfo>();
 
@@ -1281,7 +1435,7 @@ namespace GetWebPageDate.Util
             {
                 try
                 {
-                    string url = string.Format("https://yaodian.yaofangwang.com/Manage/Products/Product.aspx?Status=1&page={0}", page);
+                    string url = string.Format("https://yaodian.yaofangwang.com/Manage/Products/Product.aspx?Status={1}&page={0}", page, status);
 
                     string content = request.HttpGet(url, null, true);
 

@@ -970,5 +970,22 @@ namespace GetWebPageDate.Util
         {
             return Math.Truncate(value * 100) / 100;
         }
+
+        public static bool IsInTimeRange(string range)
+        {
+            DateTime curTime = DateTime.Now;
+
+            string[] timeInfo = range.Split('-');
+            string[] startTimeInfo = timeInfo[0].Split(':');
+            string[] entTimeInfo = timeInfo[1].Split(':');
+            DateTime startTime = new DateTime(curTime.Year, curTime.Month, curTime.Day, Convert.ToInt32(startTimeInfo[0]), Convert.ToInt32(startTimeInfo[1]), 0);
+            DateTime endTime = new DateTime(curTime.Year, curTime.Month, curTime.Day, Convert.ToInt32(entTimeInfo[0]), Convert.ToInt32(entTimeInfo[1]), 0);
+            if (curTime >= startTime && curTime < endTime)
+            {
+                return true;
+            }
+
+            return false;
+        }
     }
 }

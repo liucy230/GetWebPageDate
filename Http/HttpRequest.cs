@@ -269,6 +269,18 @@ namespace GetWebPageDate.Http
                         return "";
                     }
 
+                    if (!url.StartsWith("http", StringComparison.OrdinalIgnoreCase))
+                    {
+                        if (!url.StartsWith("://", StringComparison.OrdinalIgnoreCase))
+                        {
+                            url = "http://" + url;
+                        }
+                        else
+                        {
+                            url = "http" + url;
+                        }
+                    }
+
                     HttpWebRequest request = (HttpWebRequest)WebRequest.Create(url);
 
                     request.ContentType = "text/html;charset=UTF-8";

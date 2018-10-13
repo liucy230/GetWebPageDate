@@ -756,6 +756,8 @@ namespace GetWebPageDate.Util
                 {
                     try
                     {
+                        ticks = DateTime.Now.Ticks;
+
                         Dictionary<string, BaseItemInfo> sellingDic = GetSellingItem();
 
                         int totalCount = sellingDic.Count;

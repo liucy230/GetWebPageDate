@@ -23,10 +23,10 @@ namespace GetWebPageDate.Util.ReadWebPage
 
         //private string titleName = "二十四小时内发货";
 
-        private string autoUpDownTitleName = "二十四小时内发货.";
+        //private string autoUpDownTitleName = "二十四小时内发货.";
 
         // 下架时间
-        private string downTime = "7:30-18:30";
+        //private string downTime = "7:30-18:30";
 
         private bool isDown = false;
 
@@ -250,7 +250,7 @@ namespace GetWebPageDate.Util.ReadWebPage
 
             foreach (BaseItemInfo item in temp.Values)
             {
-                if ((item as ItemInfo).Use == autoUpDownTitleName)
+                if (IsInAutoUpDownTypeList((item as ItemInfo).Use))
                 {
                     if (!DownItem(item))
                     {
@@ -270,7 +270,7 @@ namespace GetWebPageDate.Util.ReadWebPage
             Dictionary<string, BaseItemInfo> temp = GetDownItems();
             foreach (BaseItemInfo item in temp.Values)
             {
-                if ((item as ItemInfo).Use == autoUpDownTitleName)
+                if (IsInAutoUpDownTypeList((item as ItemInfo).Use))
                 {
                     if (!UpItem(item))
                     {
@@ -362,7 +362,7 @@ namespace GetWebPageDate.Util.ReadWebPage
                                     {
                                         item.PlatformPrice = minPrice;
 
-                                        if (item.ShopPrice * (decimal)0.9 < minPrice)
+                                        if (item.ShopPrice * (decimal)(100 - spcMinDownRate) / 100M < minPrice)
                                         {
                                             UpdatePirceAndQuantity(item.ViewCount, minPrice.ToString(), null, null);
                                             CommonFun.WriteCSV("YiYao/updatePrice" + ticks + ".csv", item);
@@ -1036,6 +1036,8 @@ namespace GetWebPageDate.Util.ReadWebPage
         {
             try
             {
+                bool isSpc = IsInSpcTypeList(toItem.Use);
+
                 string seachName = toItem.Name;//isUseName ? toItem.Name : toItem.ItemName;
 
                 string itemName = HttpUtility.UrlEncode(seachName, Encoding.GetEncoding("utf-8")).ToUpper();
@@ -1128,7 +1130,7 @@ namespace GetWebPageDate.Util.ReadWebPage
 
                             if (count > 0)
                             {
-                                if (IsInUpMinPriceTitleList(toItem.Use) || count > 10)
+                                if (isSpc || count > minStock)
                                 //if (toItem.Use != titleName && count > 10)
                                 {
                                     ItemInfo item = GetOneItem(itemInfoStr);

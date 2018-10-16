@@ -40,7 +40,7 @@ namespace GetWebPageDate.Util
 
         private int waitTime = 3000;
 
-        private string downTime = "7:00-19:00";
+        //private string downTime = "7:00-19:00";
 
         public ReadPlatFormWebPageValue()
         {

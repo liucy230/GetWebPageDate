@@ -143,7 +143,7 @@ namespace GetWebPageDate.Util
 
         protected List<string> autoUpDownTypeList;
 
-        protected List<string> upMinPricTitleList;
+        protected string downTime = "7:30-18:30";
 
         public BaseReadWebPage()
         {
@@ -163,8 +163,6 @@ namespace GetWebPageDate.Util
 
             autoUpDownTypeList = GetConfigList("autoUpDownTypeKey");
 
-            upMinPricTitleList = GetConfigList("upMinPriceTitleKey");
-
             string lPriceStr = ConfigurationManager.AppSettings["lPriceKey"];
 
             lPrice = string.IsNullOrEmpty(lPriceStr) ? (decimal)0 : Convert.ToDecimal(lPriceStr);
@@ -177,13 +175,17 @@ namespace GetWebPageDate.Util
 
             clickingRate = string.IsNullOrEmpty(clickingRateStr) ? 100 : Convert.ToInt32(clickingRateStr);
 
-             string minDownRateStr = ConfigurationManager.AppSettings["minDownRateKey"];
+            string minDownRateStr = ConfigurationManager.AppSettings["minDownRateKey"];
 
-             minDownRate = string.IsNullOrEmpty(minDownRateStr) ? 100 : Convert.ToInt32(minDownRateStr);
+            minDownRate = string.IsNullOrEmpty(minDownRateStr) ? 100 : Convert.ToInt32(minDownRateStr);
 
-             string spcMinDownRateStr = ConfigurationManager.AppSettings["spcMinDownRateKey"];
+            string spcMinDownRateStr = ConfigurationManager.AppSettings["spcMinDownRateKey"];
 
-             spcMinDownRate = string.IsNullOrEmpty(spcMinDownRateStr) ? 100 : Convert.ToInt32(spcMinDownRateStr);
+            spcMinDownRate = string.IsNullOrEmpty(spcMinDownRateStr) ? 100 : Convert.ToInt32(spcMinDownRateStr);
+
+            downTime = ConfigurationManager.AppSettings["downTimeKey"];
+
+            downTime = string.IsNullOrEmpty(downTime) ? "7:30-18:30" : downTime;
 
             unUpdate = ReadXlsItems("KTUnUpdate.xlsx");
 
@@ -373,11 +375,6 @@ namespace GetWebPageDate.Util
         public bool IsInAutoUpDownTypeList(string type)
         {
             return autoUpDownTypeList.Contains(type);
-        }
-
-        public bool IsInUpMinPriceTitleList(string title)
-        {
-            return upMinPricTitleList.Contains(title);
         }
 
         public void ReadAllItemUrl(string fileName)

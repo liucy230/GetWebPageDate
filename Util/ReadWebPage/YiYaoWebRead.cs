@@ -21,7 +21,7 @@ namespace GetWebPageDate.Util.ReadWebPage
 
         private string name = "百寿康药房";
 
-        private string titleName = "二十四小时内发货";
+        //private string titleName = "二十四小时内发货";
 
         private string autoUpDownTitleName = "二十四小时内发货.";
 
@@ -175,21 +175,21 @@ namespace GetWebPageDate.Util.ReadWebPage
                 BaseItemInfo tkItem = value.Value;
                 //是否在售
                 bool isSelling = false;
-                foreach(BaseItemInfo item in yySellingItems.Values)
+                foreach (BaseItemInfo item in yySellingItems.Values)
                 {
-                    if(item.ID == tkItem.ID && CommonFun.IsSameFormat(item.Format, tkItem.Format, item.Name, tkItem.Name))
+                    if (item.ID == tkItem.ID && CommonFun.IsSameFormat(item.Format, tkItem.Format, item.Name, tkItem.Name))
                     {
                         isSelling = true;
                         break;
                     }
                 }
-               
-                if(!isSelling)
+
+                if (!isSelling)
                 {
                     //是否在仓库
                     bool isInStorehouse = false;
 
-                    foreach(BaseItemInfo item in yyStorehouseItems.Values)
+                    foreach (BaseItemInfo item in yyStorehouseItems.Values)
                     {
                         if (item.ID == tkItem.ID && CommonFun.IsSameFormat(item.Format, tkItem.Format, item.Name, tkItem.Name))
                         {
@@ -199,7 +199,7 @@ namespace GetWebPageDate.Util.ReadWebPage
                         }
                     }
 
-                    if(!isInStorehouse)
+                    if (!isInStorehouse)
                     {
                         //是否待发不
                         bool isInReadyPublish = false;
@@ -213,14 +213,14 @@ namespace GetWebPageDate.Util.ReadWebPage
                             }
                         }
 
-                        if(!isInReadyPublish)
+                        if (!isInReadyPublish)
                         {
                             //上架新品 TODO
                         }
-                    }        
+                    }
                 }
-             
-                
+
+
             }
 
             ReadAllMenuURL();
@@ -1128,7 +1128,8 @@ namespace GetWebPageDate.Util.ReadWebPage
 
                             if (count > 0)
                             {
-                                if (toItem.Use != titleName && count > 10)
+                                if (IsInUpMinPriceTitleList(toItem.Use) || count > 10)
+                                //if (toItem.Use != titleName && count > 10)
                                 {
                                     ItemInfo item = GetOneItem(itemInfoStr);
 
@@ -1344,32 +1345,32 @@ namespace GetWebPageDate.Util.ReadWebPage
 
         public void Test()
         {
-            DataTable data = CommonFun.ReadXLS("yy/test.xlsx");
+            //DataTable data = CommonFun.ReadXLS("yy/test.xlsx");
 
-            for (int row = 0; row < data.Rows.Count; row++)
-            {
-                try
-                {
-                    BaseItemInfo item = new BaseItemInfo();
-                    item.ID = data.Rows[row]["批准文号"].ToString();
-                    item.Name = (string)data.Rows[row]["通用名称"].ToString();
-                    item.ItemName = data.Columns.Contains("商品名称") ? data.Rows[row]["商品名称"].ToString() : "";
-                    item.Created = (string)data.Rows[row]["生产厂家"].ToString();
-                    item.Format = (string)data.Rows[row]["包装规格"].ToString();
-                    string priceStr = (string)data.Rows[row]["平台售价（最低价格）"].ToString();
-                    item.ShopPrice = string.IsNullOrEmpty(priceStr) ? 9999 : Convert.ToDecimal(priceStr);
-                    item.PlatformPrice = item.ShopPrice;
-                    item.Type = data.Columns.Contains("剂型") ? (string)data.Rows[row]["剂型"].ToString() : "";
-                    item.Inventory = (string)data.Rows[row]["库存"].ToString();
-                    item.SellType = (string)data.Rows[row]["出售方式（零或整）"].ToString();
+            //for (int row = 0; row < data.Rows.Count; row++)
+            //{
+            //    try
+            //    {
+            //        BaseItemInfo item = new BaseItemInfo();
+            //        item.ID = data.Rows[row]["批准文号"].ToString();
+            //        item.Name = (string)data.Rows[row]["通用名称"].ToString();
+            //        item.ItemName = data.Columns.Contains("商品名称") ? data.Rows[row]["商品名称"].ToString() : "";
+            //        item.Created = (string)data.Rows[row]["生产厂家"].ToString();
+            //        item.Format = (string)data.Rows[row]["包装规格"].ToString();
+            //        string priceStr = (string)data.Rows[row]["平台售价（最低价格）"].ToString();
+            //        item.ShopPrice = string.IsNullOrEmpty(priceStr) ? 9999 : Convert.ToDecimal(priceStr);
+            //        item.PlatformPrice = item.ShopPrice;
+            //        item.Type = data.Columns.Contains("剂型") ? (string)data.Rows[row]["剂型"].ToString() : "";
+            //        item.Inventory = (string)data.Rows[row]["库存"].ToString();
+            //        item.SellType = (string)data.Rows[row]["出售方式（零或整）"].ToString();
 
-                    string key = item.Name + item.Format + item.Created;
-                }
-                catch (Exception ex)
-                {
-                    Console.WriteLine(ex);
-                }
-            }
+            //        string key = item.Name + item.Format + item.Created;
+            //    }
+            //    catch (Exception ex)
+            //    {
+            //        Console.WriteLine(ex);
+            //    }
+            //}
             //request.HttpGet("http://www.111.com.cn/product/51026872.html");
             //Login();
             ItemInfo tItem = new ItemInfo();
@@ -1378,15 +1379,18 @@ namespace GetWebPageDate.Util.ReadWebPage
             //item.Format = "90mg*6粒";
             //item.BrandName = "芊克";
             //item.ItemName = "芊克 盐酸地尔硫卓控释胶囊 90mg*6粒";
-            tItem.ID = "国药准字B20021064";
-            tItem.Created = "陕西海天制药有限公司";
-            tItem.Name = "沙棘干乳剂";
-            tItem.Format = "10g*12袋";
-            tItem.BrandName = "海天";
-            tItem.ItemName = "海天 沙棘干乳剂 10g*12袋";
+            tItem.ID = "	国药准字H20030905";
+            tItem.Created = "北京银谷世纪药业有限公司";
+            tItem.Name = "鲑鱼降钙素喷鼻剂";
+            tItem.Format = "20ug*28喷";
+            tItem.BrandName = "金尔力";
+            tItem.ItemName = "金尔力 鲑鱼降钙素喷鼻剂 20ug*28喷";
             tItem.Type = "1234,4567";
-            CommonFun.WriteCSV("yy/test.csv", tItem);
-            //GetYiYaoMinPriceItem(item);
+            //CommonFun.WriteCSV("yy/test.csv", tItem);
+            for (int i = 0; i < 2; i++)
+            {
+                GetYiYaoMinPriceItem(tItem, false, i == 1);
+            }
             //UpNewItem(item);
         }
 

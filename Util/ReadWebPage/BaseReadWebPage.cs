@@ -142,6 +142,9 @@ namespace GetWebPageDate.Util
         protected List<string> spcTypeList;
 
         protected List<string> autoUpDownTypeList;
+
+        protected List<string> upMinPricTitleList;
+
         public BaseReadWebPage()
         {
             unloadList = GetConfigList("nameKey");
@@ -159,6 +162,8 @@ namespace GetWebPageDate.Util
             spcTypeList = GetConfigList("spcTypeKey");
 
             autoUpDownTypeList = GetConfigList("autoUpDownTypeKey");
+
+            upMinPricTitleList = GetConfigList("upMinPriceTitleKey");
 
             string lPriceStr = ConfigurationManager.AppSettings["lPriceKey"];
 
@@ -368,6 +373,11 @@ namespace GetWebPageDate.Util
         public bool IsInAutoUpDownTypeList(string type)
         {
             return autoUpDownTypeList.Contains(type);
+        }
+
+        public bool IsInUpMinPriceTitleList(string title)
+        {
+            return upMinPricTitleList.Contains(title);
         }
 
         public void ReadAllItemUrl(string fileName)

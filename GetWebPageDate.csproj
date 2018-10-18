@@ -55,6 +55,7 @@
     <Compile Include="Util\Item\BaseItemInfo.cs" />
     <Compile Include="Util\Item\OrderItemInfo.cs" />
     <Compile Include="Util\Item\RequestInfo.cs" />
+    <Compile Include="Util\Item\YFOrderInfo.cs" />
     <Compile Include="Util\Item\YiYaoItemInfo.cs" />
     <Compile Include="Util\ReadWebPage\T12YaoReadWebPage.cs" />
     <Compile Include="Util\ReadWebPage\T315ReadWebPage.cs" />

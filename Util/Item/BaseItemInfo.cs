@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace GetWebPageDate.Util
+namespace GetWebPageDate.Util.Item
 {
     public class BaseItemInfo
     {

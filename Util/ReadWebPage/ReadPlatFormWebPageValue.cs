@@ -14,6 +14,7 @@ using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Configuration;
+using GetWebPageDate.Util.Item;
 
 namespace GetWebPageDate.Util
 {
@@ -40,7 +41,21 @@ namespace GetWebPageDate.Util
 
         private int waitTime = 3000;
 
+        private string filePath = "platform/";
         //private string downTime = "7:00-19:00";
+
+        private string senderName = "王生";
+
+        private string senderPhoneNumber = "18022768274";
+
+        private ulong startOrderNO;
+
+        private List<string> redTagList;
+
+        /// <summary>
+        /// 订单号是否为升序
+        /// </summary>
+        private bool isAsc;
 
         public ReadPlatFormWebPageValue()
         {
@@ -52,6 +67,14 @@ namespace GetWebPageDate.Util
             password = aUserInfo1[1];
             username1 = aUserInfo2[0];
             password1 = aUserInfo2[1];
+
+            string infoConfig = ConfigurationManager.AppSettings["senderInfoKey"];
+            if (!string.IsNullOrEmpty(infoConfig))
+            {
+                string[] infoArray = infoConfig.Split(',');
+                senderName = infoArray[0];
+                senderPhoneNumber = infoArray[1];
+            }
         }
 
         public override void ReadAllMenuURL()
@@ -897,7 +920,7 @@ namespace GetWebPageDate.Util
             return date.ToString("yyyy-MM-dd");
         }
 
-        private void GetOrderNOAndDesc(string content, Dictionary<string, string> orderDic, bool isGetDesc = true)
+        private void GetOrderNOAndDesc(string content, Dictionary<string, string> orderDic, bool isGetDesc = true, bool isRank = false)
         {
             try
             {
@@ -905,10 +928,9 @@ namespace GetWebPageDate.Util
 
                 foreach (Match m in ms)
                 {
+                    string state = CommonFun.GetValue(m.Value, "rank='", "'");
                     if (isGetDesc)
                     {
-                        string state = CommonFun.GetValue(m.Value, "rank='", "'");
-
                         if (!string.IsNullOrEmpty(state) && state == "00")
                         {
                             string desc = CommonFun.GetValue(m.Value, "desc='", "'");
@@ -929,8 +951,11 @@ namespace GetWebPageDate.Util
                     }
                     else
                     {
-                        string orderNO = CommonFun.GetValue(m.Value, "par_orderno='", "'");
-                        orderDic.Add(orderNO, "");
+                        if (!isRank || string.IsNullOrEmpty(state))
+                        {
+                            string orderNO = CommonFun.GetValue(m.Value, "par_orderno='", "'");
+                            orderDic.Add(orderNO, "");
+                        }
                     }
                 }
             }
@@ -954,6 +979,223 @@ namespace GetWebPageDate.Util
 
             //Thread.Sleep(10 * 60 * 1000);
             //}
+        }
+
+
+        private void InitOptWaitingSendConfig()
+        {
+            string orderNO = ConfigurationManager.AppSettings["startNOKey"];
+
+            if (string.IsNullOrEmpty(orderNO))
+            {
+                Console.WriteLine("please enter startNOKey......");
+
+                orderNO = Console.ReadLine();
+            }
+
+            startOrderNO = Convert.ToUInt64(orderNO);
+
+            redTagList = GetConfigList("redTagKey");
+
+            string strDoAsc = ConfigurationManager.AppSettings["doAscKey"];
+
+            isAsc = string.IsNullOrEmpty(strDoAsc) ? false : Convert.ToInt32(strDoAsc) > 0;
+        }
+
+        private bool IsRedTag(string type)
+        {
+            return redTagList.Contains(type);
+        }
+
+        /// <summary>
+        /// 处理待发货订单
+        /// </summary>
+        public void OptWaitingSend()
+        {
+            try
+            {
+                Login(true);
+
+                InitOptWaitingSendConfig();
+
+                Dictionary<string, string> orderList = new Dictionary<string, string>();
+                int page = 1;
+                int totalPage = 0;
+                do
+                {
+                    try
+                    {
+                        string sUrl = string.Format("http://yaodian.yaofangwang.com/Manage/Sell/Order.aspx?status=PAID&page={0}", page);
+
+                        string content = request.HttpGet(sUrl);
+
+                        if (totalPage == 0)
+                        {
+                            string totalPageStr = CommonFun.GetValue(content, "条，共", "页，");
+
+                            totalPage = Convert.ToInt32(totalPageStr);
+                        }
+
+                        Console.WriteLine("Running OptLogistics totalPage:{0} page:{1}", totalPage, page);
+
+                        GetOrderNOAndDesc(content, orderList, false, true);
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine(ex);
+                    }
+                } while (++page <= totalPage);
+
+                List<BaseItemInfo> items = GetWaitingItems(orderList.Keys.ToList());
+
+                UpdateTagState(items);
+
+                WriteWaitingItemsToXLS(items);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex);
+            }
+        }
+
+        /// <summary>
+        /// 获取待发货商品信息
+        /// </summary>
+        /// <param name="conent"></param>
+        /// <returns></returns>
+        public List<BaseItemInfo> GetWaitingItems(List<string> orders)
+        {
+            List<BaseItemInfo> items = new List<BaseItemInfo>();
+
+            string iUrl = "http://yaodian.yaofangwang.com/Manage/Sell/OrderView.aspx?OrderNo={0}";
+
+            foreach (string order in orders)
+            {
+                try
+                {
+                    string content = request.HttpGet(string.Format(iUrl, order));
+
+                    string addressInfo = CommonFun.GetValue(content, "<i class=\"fa fa-truck\"></i>收货人信息", "<div class=\"row\">");
+
+                    string itemInfo = CommonFun.GetValue(content, "<tbody>", "</tbody>");
+
+                    YFOrderInfo item = new YFOrderInfo();
+                    item.Created = order;
+                    item.SenderName = senderName;
+                    item.SenderPhoneNumber = senderPhoneNumber;
+                    MatchCollection aMs = CommonFun.GetValues(addressInfo, "<div class=\"col-md-4\">", "</div>");
+
+                    item.ReceiverName = aMs[0].Value.Trim(); ;
+                    item.ReceiverPhoneNumber = aMs[1].Value.Trim().Replace("&nbsp;", "");
+                    item.ReceiverAddress = CommonFun.GetValue(addressInfo, "<div class=\"col-md-10\">", "</div>");
+
+                    MatchCollection rMs = CommonFun.GetValues(itemInfo, " <td class=\"tdcenter lh24\" style=\"width: 2%;\" rowspan=\"1\">", "</tr>");
+
+                    foreach (Match m in rMs)
+                    {
+                        string nameInfo = CommonFun.GetValue(m.Value, "<td class=\"tdcenter lh24\" rowspan=\"1\" title=\"", "/td>");
+                        string name = CommonFun.GetValue(nameInfo, "target=\"_blank\">", "</a>");
+                        item.ViewCount = CommonFun.GetValue(nameInfo, "</br>商品编号：", "<").Trim();
+
+                        MatchCollection iMs = CommonFun.GetValues(m.Value, "<td class=\"tdcenter lh24\"   rowspan=\"1\">", "&");
+                        MatchCollection iMs1 = CommonFun.GetValues(m.Value, "<td class=\"tdcenter lh24\" >", "</td>");
+                        item.ID += name + " ";
+                        item.ID += iMs[0].Value.Trim() + " ";
+                        item.ID += iMs[1].Value.Trim() + " ";
+                        //item.ID += iMs[2].Value.Trim() + " ";
+                        item.ID += iMs1[1].Value.Trim().Replace("&nbsp;", "") + " ";
+                    }
+
+                    item.SellType = CommonFun.GetValue(content, " <div class=\"col-md-2 font-grey-mint\">发票信息： </div>", "</div>");
+
+                    items.Add(item);
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine(ex);
+                }
+            }
+
+
+            return items;
+        }
+
+
+        public void UpdateTagState(List<BaseItemInfo> items)
+        {
+            try
+            {
+                string uUrl = "http://yaodian.yaofangwang.com/Manage/Handler/Handler.ashx";
+
+                string postData = "method=OrderDescShop&CustomerShopOrderNo={0}&dec={1}&rank={2}";
+
+                foreach (BaseItemInfo item in items)
+                {
+                    string orderNO = item.Created;
+                    string rank = "00";
+                    string dec = startOrderNO.ToString();
+
+                    if (!IsRedTag(item.ViewCount))
+                    {
+                        rank = "05";
+                        dec += "+2017发走";
+                    }
+                    else if (!item.SellType.Contains("无需发票"))
+                    {
+                        rank = "05";
+                        dec += "开";
+                    }
+
+                    request.HttpPost(uUrl, string.Format(postData, orderNO, dec, rank));
+                    item.Name = startOrderNO.ToString();
+                    if (isAsc)
+                    {
+                        startOrderNO++;
+                    }
+                    else
+                    {
+                        startOrderNO--;
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex);
+            }
+        }
+
+        /// <summary>
+        /// 提取待发货信息到xls表
+        /// </summary>
+        /// <param name="items"></param>
+        public void WriteWaitingItemsToXLS(List<BaseItemInfo> items)
+        {
+            try
+            {
+                foreach (BaseItemInfo item in items)
+                {
+                    CommonFun.WriteCSV(filePath + "send1_" + ticks + fileExtendName, item);
+
+                    YFOrderInfo yfItem = item as YFOrderInfo;
+                    yfItem.ItemName = item.ID;
+                    yfItem.ExpressNO = "'" + item.Name;
+
+                    CommonFun.WriteCSV(filePath + "send3" + fileExtendName, item);
+
+                    yfItem.ItemName = null;
+                    yfItem.ExpressNO = null;
+                    yfItem.ReceiverName = null;
+                    yfItem.ReceiverPhoneNumber = null;
+                    yfItem.SenderName = null;
+                    yfItem.SenderPhoneNumber = null;
+                    yfItem.ReceiverAddress = item.ID;
+                    CommonFun.WriteCSV(filePath + "send2_" + ticks + fileExtendName, item);
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex);
+            }
         }
 
         /// <summary>
@@ -1305,7 +1547,7 @@ namespace GetWebPageDate.Util
                                     OptUpdatePrice(minPrice, item, diffPrice, opt, isLimitDown, iFileName, minDownRate);
                                 }
                             }
-                            
+
                         }
                     }
                     catch (Exception ex)

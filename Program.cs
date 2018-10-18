@@ -1,5 +1,6 @@
 ﻿using GetWebPageDate.Http;
 using GetWebPageDate.Util;
+using GetWebPageDate.Util.Item;
 using GetWebPageDate.Util.ReadWebPage;
 using GetWebPageDate.Util.SyncStock;
 using GetWebPageDate.Util.UpdatePrice;
@@ -31,6 +32,7 @@ namespace GetWebPageDate
                 //readPlatform.Start();
                 //readPlatform.UpdatePrice();
                 //readPlatform.OptOrder();
+                readPlatform.OptWaitingSend();
                 #endregion
 
                 #region tk上架操作
@@ -80,7 +82,7 @@ namespace GetWebPageDate
                 //yiYaoread.GetSellingItem("1601910842", DateTime.Now);
                 //yiYaoread.Start();
                 //yiYaoread.GetOrderDetail();
-                yiYaoread.UpdatePrice();
+                //yiYaoread.UpdatePrice();
                 //yiYaoread.Test();
                 //yiYaoread.MenuIndex = Convert.ToInt32(menuIndex);
                 //yiYaoread.Start();

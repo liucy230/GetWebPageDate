@@ -1374,26 +1374,27 @@ namespace GetWebPageDate.Util.ReadWebPage
             //    }
             //}
             //request.HttpGet("http://www.111.com.cn/product/51026872.html");
-            //Login();
-            ItemInfo tItem = new ItemInfo();
+            Login();
+            //ItemInfo tItem = new ItemInfo();
             //万乐 乌苯美司片 30mg*12片
-            //item.Name = "盐酸地尔硫卓控释胶囊";
-            //item.Format = "90mg*6粒";
-            //item.BrandName = "芊克";
-            //item.ItemName = "芊克 盐酸地尔硫卓控释胶囊 90mg*6粒";
-            tItem.ID = "	国药准字H20030905";
-            tItem.Created = "北京银谷世纪药业有限公司";
-            tItem.Name = "鲑鱼降钙素喷鼻剂";
-            tItem.Format = "20ug*28喷";
-            tItem.BrandName = "金尔力";
-            tItem.ItemName = "金尔力 鲑鱼降钙素喷鼻剂 20ug*28喷";
-            tItem.Type = "1234,4567";
+            ItemInfo item = new ItemInfo();
+            item.Name = "盐酸雷尼替丁胶囊";
+            item.Format = "0.15gx20粒/盒";
+            item.BrandName = "芊克";
+            item.ItemName = "芊克 盐酸地尔硫卓控释胶囊 90mg*6粒";
+            //tItem.ID = "	国药准字H20030905";
+            //tItem.Created = "北京银谷世纪药业有限公司";
+            //tItem.Name = "鲑鱼降钙素喷鼻剂";
+            //tItem.Format = "20ug*28喷";
+            //tItem.BrandName = "金尔力";
+            //tItem.ItemName = "金尔力 鲑鱼降钙素喷鼻剂 20ug*28喷";
+            //tItem.Type = "1234,4567";
             //CommonFun.WriteCSV("yy/test.csv", tItem);
-            for (int i = 0; i < 2; i++)
-            {
-                GetYiYaoMinPriceItem(tItem, false, i == 1);
-            }
-            //UpNewItem(item);
+            //for (int i = 0; i < 2; i++)
+            //{
+            //    GetYiYaoMinPriceItem(tItem, false, i == 1);
+            //}
+            UpNewItem(item);
         }
 
         public void SetItmeInfo(ItemInfo item, string content)
@@ -1677,7 +1678,7 @@ namespace GetWebPageDate.Util.ReadWebPage
             //1、查找基本信息
             string sUrl = "http://popadmin.111.com.cn/admin/item/getItems.action";
 
-            string sDataPostStr = string.Format("skuName={0}", item.Name);
+            string sDataPostStr = string.Format("skuName={0}", CommonFun.GetUrlEncode(item.Name));
             string itemsContent = request.HttpPost(sUrl, sDataPostStr);
 
             itemsContent = itemsContent.Replace("attrs:{", "\"");
@@ -1776,7 +1777,7 @@ namespace GetWebPageDate.Util.ReadWebPage
                 string wUrl = "http://popadmin.111.com.cn/admin/item/saveItemBaseInfo.action?pageType=itempublish_old&isOld=true";
                 string wData = string.Format("tempProduct.popItemId={0}&tempProduct.itemId={1}&tempProduct.skuId={2}&tempProduct.productNo=&venderService=0&errorMsg=save_suc&firstCategoryId=&catalogId={3}&brandId={4}&tempProduct.venderId={5}&tagInx={6}&tempProduct.brandCheckStatus={7}&tempProduct.brandName={8}&isEdit=false&tempProduct.catalogName={9}&tempProduct.catalogId={10}&tempProduct.brandId={11}&itemId={12}&tempProduct.productName={13}&tempProduct.productSubTitle=&tempProduct.barCode=&tempProduct.approvalnum=&tempProduct.approvalnum={14}&tempProduct.norms={15}&tempProduct.exChangedDay=0&tempProduct.haiTaoAddress=0&tempProduct.haiTaoCountry=&tempProduct.isHaiTao=0&tempProduct.inshopCataId=&inShopCataIds={16}&tempProduct.recommendPrice={17}&tempProduct.originalPrice={18}&tempProduct.weight={19}&tempProduct.quantity={20}&tempProduct.extProductNo=&tempProduct.storeSchemeId={21}&tempProduct.frightTemplateId={22}&ImgId=&btocPictureId=&pictureId=&imgPic=&imgtxt=&imgtxthid=&ImgId=&btocPictureId=&pictureId=&imgPic=&imgtxt=&imgtxthid=&ImgId=&btocPictureId=&pictureId=&imgPic=&imgtxt=&imgtxthid=&ImgId=&btocPictureId=&pictureId=&imgPic=&imgtxt=&imgtxthid=&ImgId=&btocPictureId=&pictureId=&imgPic=&imgtxt=&imgtxthid=&ImgId=&btocPictureId=&pictureId=&imgPic=&imgtxt=&imgtxthid=&descModel.itemId={23}"
                     , popItemId, itemId, id, catalogId, brandId, venderId, tagInx, brandCheckStatus, brandName, catalogName, catalogId, brandId, itemId, productName, approvalnum, norms, inShopCataIds, recommendPrice, originalPrice, weight, quantity, storeSchemeId, frightTemplateId, itemId);
-                request.HttpPost(wUrl, wData);
+                content = request.HttpPost(wUrl, wData);
                 //7、获取新发布商品信息http://popadmin.111.com.cn/admin/item/queryItemByPop.action?popItemId=889041&errorMsg=save_suc
             }
 

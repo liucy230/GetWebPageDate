@@ -82,6 +82,7 @@ namespace GetWebPageDate.Util
                 senderName = infoArray[0];
                 senderPhoneNumber = infoArray[1];
             }
+            selfName = ConfigurationManager.AppSettings["yfSelfName"];
         }
 
         public override void ReadAllMenuURL()
@@ -817,14 +818,14 @@ namespace GetWebPageDate.Util
             Login(2);
             bool opt = true;
             BaseItemInfo item = new BaseItemInfo();
-            item.ID = "国药准字Z10980041";
+            item.ID = "国药准字Z20025028";
             item.ViewCount = "2461435";
-            item.Format = "0.25gx30粒/瓶";
-            item.Name = "金龙胶囊";
-            item.Created = "北京建生药业有限公司";
+            item.Format = "0.4gx54粒/瓶";
+            item.Name = "前列倍喜胶囊";
+            item.Created = "贵州太和制药有限公司";
             item.Type = "2017";
-            item.Inventory = "81";
-            item.ItemName = "281980";
+            item.Inventory = "52";
+            item.ItemName = "196329";
             if (IsInTypeList(item.Type))
             {
                 if (Convert.ToInt16(item.Inventory) > Convert.ToInt16(minStockList[0]))
@@ -1715,6 +1716,19 @@ namespace GetWebPageDate.Util
         /// <returns></returns>
         public Dictionary<string, BaseItemInfo> GetSellingItems()
         {
+            //Dictionary<string, BaseItemInfo> items = new Dictionary<string, BaseItemInfo>();
+            //BaseItemInfo item = new BaseItemInfo();
+            //item.ID = "国药准字Z20025028";
+            //item.ViewCount = "2461435";
+            //item.Format = "0.4gx54粒/瓶";
+            //item.Name = "前列倍喜胶囊";
+            //item.Created = "贵州太和制药有限公司";
+            //item.Type = "2017";
+            //item.Inventory = "52";
+            //item.ItemName = "196329";
+            //items.Add("", item);
+            //return items;
+       
             return GetItemsByStatus(1);
         }
 

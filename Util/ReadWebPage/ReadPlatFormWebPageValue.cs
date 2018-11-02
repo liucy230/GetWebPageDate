@@ -795,7 +795,7 @@ namespace GetWebPageDate.Util
                     postDataStr = string.Format("__EVENTTARGET=ctl00%24ContentPlaceHolder1%24t_login&__EVENTARGUMENT=&__VIEWSTATE=%2FwEPDwUINDE0MjQ5NzVkGAEFHl9fQ29udHJvbHNSZXF1aXJlUG9zdEJhY2tLZXlfXxYBBSVjdGwwMCRDb250ZW50UGxhY2VIb2xkZXIxJGNiX1JlbWVtYmVyfMPsdmjZlfvGbCxOD8u0r%2FRLbA8%3D&__VIEWSTATEGENERATOR=C2EE9ABB&__EVENTVALIDATION=%2FwEdAAosVaXMhV4q7s19NxAQU1EA%2FX3Fo%2FRaqYiLtErA%2B0XLEhccBLe9MIf%2BOeu1SwHT%2Fo2ng0PqTUAPaPYHk4tr%2FTPfKqmCwJguV16MgvgQAIOIM5gCICnqqodEefzHnITuNvGKN2iu4q6IDCzyu2cVK%2B2X9v9Eq8t4s5ZZ5SNoKNrRyao0KorV0rlA31R%2FnAfLx9YONrIXtTlQ%2FOFtaven3EmBxJNqndFqhuABr6rHIEGR90USvzc%3D&ctl00%24ContentPlaceHolder1%24txt_AccountName={0}&ctl00%24ContentPlaceHolder1%24txt_Password={1}&ctl00%24ContentPlaceHolder1%24txt_ValidateCode=&ctl00%24ContentPlaceHolder1%24txt_Mobile=&ctl00%24ContentPlaceHolder1%24txt_ValidateCode1=&ctl00%24ContentPlaceHolder1%24txtMobileCode=&ctl00%24ContentPlaceHolder1%24hf_type=default", CommonFun.GetUrlEncode(username2), password2);
                     break;
                 default:
-                    postDataStr = string.Format("__EVENTTARGET=ctl00%24ContentPlaceHolder1%24t_login&__EVENTARGUMENT=&__VIEWSTATE=%2FwEPDwUINDE0MjQ5NzVkGAEFHl9fQ29udHJvbHNSZXF1aXJlUG9zdEJhY2tLZXlfXxYBBSVjdGwwMCRDb250ZW50UGxhY2VIb2xkZXIxJGNiX1JlbWVtYmVyfMPsdmjZlfvGbCxOD8u0r%2FRLbA8%3D&__VIEWSTATEGENERATOR=C2EE9ABB&__EVENTVALIDATION=%2FwEdAAosVaXMhV4q7s19NxAQU1EA%2FX3Fo%2FRaqYiLtErA%2B0XLEhccBLe9MIf%2BOeu1SwHT%2Fo2ng0PqTUAPaPYHk4tr%2FTPfKqmCwJguV16MgvgQAIOIM5gCICnqqodEefzHnITuNvGKN2iu4q6IDCzyu2cVK%2B2X9v9Eq8t4s5ZZ5SNoKNrRyao0KorV0rlA31R%2FnAfLx9YONrIXtTlQ%2FOFtaven3EmBxJNqndFqhuABr6rHIEGR90USvzc%3D&ctl00%24ContentPlaceHolder1%24txt_AccountName={0}&ctl00%24ContentPlaceHolder1%24txt_Password={1}&ctl00%24ContentPlaceHolder1%24txt_ValidateCode=&ctl00%24ContentPlaceHolder1%24txt_Mobile=&ctl00%24ContentPlaceHolder1%24txt_ValidateCode1=&ctl00%24ContentPlaceHolder1%24txtMobileCode=&ctl00%24ContentPlaceHolder1%24hf_type=default",  CommonFun.GetUrlEncode(username), password);
+                    postDataStr = string.Format("__EVENTTARGET=ctl00%24ContentPlaceHolder1%24t_login&__EVENTARGUMENT=&__VIEWSTATE=%2FwEPDwUINDE0MjQ5NzVkGAEFHl9fQ29udHJvbHNSZXF1aXJlUG9zdEJhY2tLZXlfXxYBBSVjdGwwMCRDb250ZW50UGxhY2VIb2xkZXIxJGNiX1JlbWVtYmVyfMPsdmjZlfvGbCxOD8u0r%2FRLbA8%3D&__VIEWSTATEGENERATOR=C2EE9ABB&__EVENTVALIDATION=%2FwEdAAosVaXMhV4q7s19NxAQU1EA%2FX3Fo%2FRaqYiLtErA%2B0XLEhccBLe9MIf%2BOeu1SwHT%2Fo2ng0PqTUAPaPYHk4tr%2FTPfKqmCwJguV16MgvgQAIOIM5gCICnqqodEefzHnITuNvGKN2iu4q6IDCzyu2cVK%2B2X9v9Eq8t4s5ZZ5SNoKNrRyao0KorV0rlA31R%2FnAfLx9YONrIXtTlQ%2FOFtaven3EmBxJNqndFqhuABr6rHIEGR90USvzc%3D&ctl00%24ContentPlaceHolder1%24txt_AccountName={0}&ctl00%24ContentPlaceHolder1%24txt_Password={1}&ctl00%24ContentPlaceHolder1%24txt_ValidateCode=&ctl00%24ContentPlaceHolder1%24txt_Mobile=&ctl00%24ContentPlaceHolder1%24txt_ValidateCode1=&ctl00%24ContentPlaceHolder1%24txtMobileCode=&ctl00%24ContentPlaceHolder1%24hf_type=default", CommonFun.GetUrlEncode(username), password);
                     break;
             }
 
@@ -1066,7 +1066,8 @@ namespace GetWebPageDate.Util
                     }
                 } while (++page <= totalPage);
 
-                List<BaseItemInfo> items = GetWaitingItems(orderList.Keys.ToList());
+
+                List<YFOrderWriteInfo> items = GetWaitingItems(orderList.Keys.ToList());
 
                 UpdateTagState(items);
 
@@ -1083,9 +1084,9 @@ namespace GetWebPageDate.Util
         /// </summary>
         /// <param name="conent"></param>
         /// <returns></returns>
-        public List<BaseItemInfo> GetWaitingItems(List<string> orders)
+        public List<YFOrderWriteInfo> GetWaitingItems(List<string> orders)
         {
-            List<BaseItemInfo> items = new List<BaseItemInfo>();
+            List<YFOrderWriteInfo> items = new List<YFOrderWriteInfo>();
 
             string iUrl = "http://yaodian.yaofangwang.com/Manage/Sell/OrderView.aspx?OrderNo={0}";
 
@@ -1093,6 +1094,8 @@ namespace GetWebPageDate.Util
             {
                 try
                 {
+                    YFOrderWriteInfo wItem = new YFOrderWriteInfo();
+
                     string content = request.HttpGet(string.Format(iUrl, order));
 
                     string addressInfo = CommonFun.GetValue(content, "<i class=\"fa fa-truck\"></i>收货人信息", "<div class=\"row\">");
@@ -1111,6 +1114,7 @@ namespace GetWebPageDate.Util
 
                     MatchCollection rMs = CommonFun.GetValues(itemInfo, " <td class=\"tdcenter lh24\" style=\"width: 2%;\" rowspan=\"1\">", "</tr>");
 
+                    int count = 0;
                     foreach (Match m in rMs)
                     {
                         string nameInfo = CommonFun.GetValue(m.Value, "<td class=\"tdcenter lh24\" rowspan=\"1\" title=\"", "/td>");
@@ -1122,13 +1126,33 @@ namespace GetWebPageDate.Util
                         item.ID += name + " ";
                         item.ID += iMs[0].Value.Trim() + " ";
                         item.ID += iMs[1].Value.Trim() + " ";
+                        string priceStr = CommonFun.GetValue(m.Value, "<td class=\"tdcenter lh24\"  rowspan=\"1\">¥", "<");
+                        //item.ShopPrice = Convert.ToDecimal(priceStr.Trim());
                         //item.ID += iMs[2].Value.Trim() + " ";
                         item.ID += iMs1[1].Value.Trim().Replace("&nbsp;", "") + " ";
+
+                        YFOrderInfo tItem = new YFOrderInfo();
+                        tItem.ItemName = name;
+                        tItem.ReceiverZipCode = iMs[0].Value.Trim();
+                        tItem.BuyerId = iMs[1].Value.Trim();
+                        tItem.ExpressName = iMs1[1].Value.Trim().Replace("&nbsp;", "");
+                        tItem.ExpressTemplate = priceStr.Trim();
+                        if(++count == 1)
+                        {
+                            tItem.SenderName = item.SenderName;
+                            tItem.SenderPhoneNumber = item.SenderPhoneNumber;
+                            tItem.ReceiverName = item.ReceiverName;
+                            tItem.ReceiverPhoneNumber = item.ReceiverPhoneNumber;
+                            tItem.ReceiverAddress = item.ReceiverAddress;
+                        }
+                        wItem.TotalItem.Add(tItem);
                     }
 
                     item.SellType = CommonFun.GetValue(content, " <div class=\"col-md-2 font-grey-mint\">发票信息： </div>", "</div>");
 
-                    items.Add(item);
+                    wItem.BaseItem = item;
+
+                    items.Add(wItem);
                 }
                 catch (Exception ex)
                 {
@@ -1141,7 +1165,7 @@ namespace GetWebPageDate.Util
         }
 
 
-        public void UpdateTagState(List<BaseItemInfo> items)
+        public void UpdateTagState(List<YFOrderWriteInfo> items)
         {
             try
             {
@@ -1149,8 +1173,10 @@ namespace GetWebPageDate.Util
 
                 string postData = "method=OrderDescShop&CustomerShopOrderNo={0}&dec={1}&rank={2}";
 
-                foreach (BaseItemInfo item in items)
+                foreach (YFOrderWriteInfo wItem in items)
                 {
+                    BaseItemInfo item = wItem.BaseItem;
+
                     string orderNO = item.Created;
                     string rank = "00";
                     string dec = startOrderNO.ToString();
@@ -1168,6 +1194,12 @@ namespace GetWebPageDate.Util
 
                     request.HttpPost(uUrl, string.Format(postData, orderNO, dec, rank));
                     item.Name = startOrderNO.ToString();
+                    foreach(BaseItemInfo sItem in wItem.TotalItem)
+                    {
+                        YFOrderInfo yfSItem = sItem as YFOrderInfo;
+                        yfSItem.ExpressNO = "'" + startOrderNO.ToString();
+                    }
+
                     if (isAsc)
                     {
                         startOrderNO++;
@@ -1188,19 +1220,17 @@ namespace GetWebPageDate.Util
         /// 提取待发货信息到xls表
         /// </summary>
         /// <param name="items"></param>
-        public void WriteWaitingItemsToXLS(List<BaseItemInfo> items)
+        public void WriteWaitingItemsToXLS(List<YFOrderWriteInfo> items)
         {
             try
             {
-                foreach (BaseItemInfo item in items)
+                foreach (YFOrderWriteInfo wItem in items)
                 {
+                    BaseItemInfo item = wItem.BaseItem;
+
                     CommonFun.WriteCSV(filePath + "send1_" + ticks + fileExtendName, item);
 
                     YFOrderInfo yfItem = item as YFOrderInfo;
-                    yfItem.ItemName = item.ID;
-                    yfItem.ExpressNO = "'" + item.Name;
-
-                    CommonFun.WriteCSV(filePath + "send3" + fileExtendName, item);
 
                     yfItem.ItemName = null;
                     yfItem.ExpressNO = null;
@@ -1210,6 +1240,11 @@ namespace GetWebPageDate.Util
                     yfItem.SenderPhoneNumber = null;
                     yfItem.ReceiverAddress = item.ID;
                     CommonFun.WriteCSV(filePath + "send2_" + ticks + fileExtendName, item);
+
+                    foreach(BaseItemInfo sItem in wItem.TotalItem)
+                    {
+                        CommonFun.WriteCSV(filePath + "send3" + fileExtendName, sItem);
+                    }
                 }
             }
             catch (Exception ex)

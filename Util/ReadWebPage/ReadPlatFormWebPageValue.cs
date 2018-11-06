@@ -1658,6 +1658,12 @@ namespace GetWebPageDate.Util
             return items;
         }
 
+        /// <summary>
+        /// 更新物品信息
+        /// </summary>
+        /// <param name="item"></param>
+        /// <param name="status"></param>
+        /// <returns></returns>
         public bool UpdateItemInfo(BaseItemInfo item, string status = null)
         {
             try

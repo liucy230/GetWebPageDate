@@ -5,6 +5,7 @@ using System.Configuration;
 using System.Data;
 using System.Linq;
 using System.Media;
+using System.Reflection;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading;
@@ -154,15 +155,121 @@ namespace GetWebPageDate.Util.ReadWebPage
             return null;
         }
 
+        /// <summary>
+        /// 获取历史数据
+        /// </summary>
+        /// <returns></returns>
+        private Dictionary<string, BaseItemInfo> ReadHistoryItems()
+        {
+            Dictionary<string, BaseItemInfo> items = new Dictionary<string, BaseItemInfo>();
+            DataTable data = CommonFun.ReadXLS(fileName + "history.xls", "info");
+            if (data != null)
+            {
+                foreach (DataRow row in data.Rows)
+                {
+                    try
+                    {
+                        BaseItemInfo item = new BaseItemInfo();
+
+                        PropertyInfo[] propertyArray = item.GetType().GetProperties();
+
+                        string[] headArray = item.GetLogHeadLine().Split(',');
+
+                        for (int i = 0; i < propertyArray.Length; i++)
+                        {
+                            try
+                            {
+                                string value = row[i].ToString();
+
+                                object setValue = Convert.ChangeType(value, propertyArray[i].PropertyType);
+
+                                propertyArray[i].SetValue(item, setValue);
+                            }
+                            catch (Exception ex)
+                            {
+                                Console.WriteLine(ex);
+                            }
+                        }
+                        string key = item.Name + item.Format + item.Created;
+                        if (!items.ContainsKey(key))
+                        {
+                            items.Add(key, item);
+                        }
+                        else
+                        {
+                            Console.WriteLine("ReadHistoryTtems have same one........");
+                        }
+
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine(ex);
+                    }
+                }
+            }
+
+
+            return items;
+        }
+
+        /// <summary>
+        /// 移除药房已下架的商品
+        /// </summary>
+        /// <param name="yfSellingItems"></param>
+        /// <param name="historyItems"></param>
+        /// <returns></returns>
+        private Dictionary<string, BaseItemInfo> RemoveHistoryItem(Dictionary<string, BaseItemInfo> yfSellingItems, Dictionary<string, BaseItemInfo> historyItems)
+        {
+            Dictionary<string, BaseItemInfo> items = new Dictionary<string, BaseItemInfo>();
+            for (int i = historyItems.Count; i < 0; i--)
+            {
+                BaseItemInfo item = historyItems.Values.ToArray()[i];
+                string key = item.Name + item.Format + item.Created;
+
+                if (!yfSellingItems.ContainsKey(key))
+                {
+                    items.Add(key, item);
+                    historyItems.Remove(key);
+                    CommonFun.WriteXLS(fileName + "/RemoveHistory" + ticks + ".xls", item);
+                }
+            }
+
+            return items;
+        }
+
+        private int GetHistoryStock(string key, Dictionary<string, BaseItemInfo> historyItems)
+        {
+            if (historyItems.ContainsKey(key))
+            {
+                return Convert.ToInt32(historyItems[key].Inventory);
+            }
+
+            return int.MinValue;
+        }
+
+        /// <summary>
+        /// 写历史记录
+        /// </summary>
+        /// <param name="item"></param>
+        private void AddHistoryStock(BaseItemInfo item)
+        {
+            CommonFun.WriteXLS(fileName + "history.xls", item);
+        }
+
+        private void UpdateHistoryStock(BaseItemInfo item)
+        {
+            CommonFun.UpdateXLS(fileName + "history.xls", new string[] { "库存" }, new string[] { item.Inventory }, "最近浏览", item.ViewCount, "info");
+        }
+
         public override void Start()
         {
             Login();
 
-            ReadTKWebPageValue tk = new ReadTKWebPageValue();
+            Dictionary<string, BaseItemInfo> yfHistoryItems = ReadHistoryItems();
 
-            tk.Login();
-
-            Dictionary<string, BaseItemInfo> tkSellingItems = tk.GetSellingItem();
+            ReadPlatFormWebPageValue yf = new ReadPlatFormWebPageValue();
+            yf.Login(2);
+            Dictionary<string, BaseItemInfo> yfSellingItems = yf.GetSellingItems();
 
             Dictionary<string, BaseItemInfo> yySellingItems = GetSellingItems();
 
@@ -170,16 +277,72 @@ namespace GetWebPageDate.Util.ReadWebPage
 
             Dictionary<string, BaseItemInfo> yyReadyPublishItems = GetReadyPublishItems();
 
-            foreach (KeyValuePair<string, BaseItemInfo> value in tkSellingItems)
+            Dictionary<string, BaseItemInfo> downItems = RemoveHistoryItem(yfSellingItems, yfHistoryItems);
+
+            //下架
+            int count = 0;
+            foreach (KeyValuePair<string, BaseItemInfo> downValue in downItems)
             {
-                BaseItemInfo tkItem = value.Value;
+                Console.WriteLine("{0} down item totalCount:{1} curCount:{2}", DateTime.Now, downItems.Count, ++count);
+                BaseItemInfo downItem = downValue.Value;
+                foreach (BaseItemInfo item in yySellingItems.Values)
+                {
+                    if (downItem.ID == item.ID && CommonFun.IsSameFormat(item.Format, downItem.Format, item.Name, downItem.Name))
+                    {
+                        DownItem(item);
+                        CommonFun.WriteXLS(fileName + "down" + ticks + ".xls", item);
+                    }
+                }
+            }
+
+            count = 0;
+            foreach (KeyValuePair<string, BaseItemInfo> value in yfSellingItems)
+            {
+                Console.WriteLine("{0} up and sync item totalCount:{1} curCount:{2}", DateTime.Now, yfSellingItems.Count, ++count);
+                BaseItemInfo yfItem = value.Value;
                 //是否在售
                 bool isSelling = false;
                 foreach (BaseItemInfo item in yySellingItems.Values)
                 {
-                    if (item.ID == tkItem.ID && CommonFun.IsSameFormat(item.Format, tkItem.Format, item.Name, tkItem.Name))
+                    if (item.ID == yfItem.ID && CommonFun.IsSameFormat(item.Format, yfItem.Format, item.Name, yfItem.Name))
                     {
                         isSelling = true;
+                        int historyCount = GetHistoryStock(value.Key, yfHistoryItems);
+                        //TODO 同步库存
+                        if (historyCount != int.MinValue)
+                        {
+                            int yfCount = Convert.ToInt32(yfItem.Inventory);
+                            int yyCount = Convert.ToInt32(item.Inventory);
+
+                            int diff = historyCount - yfCount;
+                            diff += historyCount - yyCount;
+
+                            if (diff > 0)
+                            {
+                                historyCount -= diff;
+                                string historyCountStr = historyCount.ToString();
+                                UpdateStock(item.ViewCount, historyCountStr);
+                                yfHistoryItems[value.Key].Inventory = historyCountStr;
+                                UpdateHistoryStock(yfHistoryItems[value.Key]);
+                                item.Inventory = historyCountStr;
+                                yf.UpdateItemInfo(item);
+                                CommonFun.WriteXLS(fileName + "change_stock" + ticks + ".xls", yfItem);
+                            }
+                            else
+                            {
+                                Console.WriteLine("Stock error history:{0} yf:{1} yy:{2}", historyCount, yfCount, yyCount);
+                            }
+                        }
+                        else
+                        {
+                            //重新同步库存已药房的为基础库存
+                            Console.WriteLine("sync stock key;{0} stock:{}...........", value.Key, yfItem.Inventory);
+                            CommonFun.WriteXLS(fileName + "sync_stock" + ticks + ".xls", yfItem);
+                            yfHistoryItems.Add(value.Key, yfItem);
+                            UpdateStock(item.ViewCount, yfItem.Inventory);
+                            AddHistoryStock(yfItem);
+                        }
+
                         break;
                     }
                 }
@@ -191,10 +354,26 @@ namespace GetWebPageDate.Util.ReadWebPage
 
                     foreach (BaseItemInfo item in yyStorehouseItems.Values)
                     {
-                        if (item.ID == tkItem.ID && CommonFun.IsSameFormat(item.Format, tkItem.Format, item.Name, tkItem.Name))
+                        if (item.ID == yfItem.ID && CommonFun.IsSameFormat(item.Format, yfItem.Format, item.Name, yfItem.Name))
                         {
-                            isInStorehouse = true;
                             //重新上架 TODO
+                            isInStorehouse = true;
+                            item.Inventory = yfItem.Inventory;
+                            UpItem(item);
+                            UpdatePirceAndQuantity(item.ViewCount, null, null, yfItem.Inventory);
+                            CommonFun.WriteXLS(fileName + "upItem" + ticks + ".xls", item);
+
+                            if (yfHistoryItems.ContainsKey(value.Key))
+                            {
+                                yfHistoryItems[value.Key].Inventory = yfItem.Inventory;
+                                UpdateHistoryStock(yfHistoryItems[value.Key]);
+                            }
+                            else
+                            {
+                                yfHistoryItems.Add(value.Key, yfItem);
+                                AddHistoryStock(yfItem);
+                            }
+                            
                             break;
                         }
                     }
@@ -206,9 +385,10 @@ namespace GetWebPageDate.Util.ReadWebPage
 
                         foreach (BaseItemInfo item in yyReadyPublishItems.Values)
                         {
-                            if (item.ID == tkItem.ID && CommonFun.IsSameFormat(item.Format, tkItem.Format, item.Name, tkItem.Name))
+                            if (item.ID == yfItem.ID && CommonFun.IsSameFormat(item.Format, yfItem.Format, item.Name, yfItem.Name))
                             {
                                 isInStorehouse = true;
+                                CommonFun.WriteXLS(fileName + "publishItem" + ticks + ".xls", item);
                                 break;
                             }
                         }
@@ -216,16 +396,24 @@ namespace GetWebPageDate.Util.ReadWebPage
                         if (!isInReadyPublish)
                         {
                             //上架新品 TODO
+                            if (UpNewItem(yfItem))
+                            {
+                                CommonFun.WriteXLS(fileName + "upNewItemSuccessed" + ticks + ".xls", yfItem);
+                            }
+                            else
+                            {
+                                CommonFun.WriteXLS(fileName + "upNewItemFailed" + ticks + ".xls", yfItem);
+                            }
+
                         }
                     }
                 }
-
-
             }
 
-            ReadAllMenuURL();
+            Console.WriteLine("{0} Finshed.....................", DateTime.Now);
+            //ReadAllMenuURL();
 
-            GetWinItem();
+            //GetWinItem();
         }
 
 
@@ -1600,6 +1788,48 @@ namespace GetWebPageDate.Util.ReadWebPage
             }
         }
 
+        /// <summary>
+        /// 同步药房物品
+        /// </summary>
+        public void SyncYFItems()
+        {
+            try
+            {
+                //获取药房物品在售列表
+                ReadPlatFormWebPageValue yf = new ReadPlatFormWebPageValue();
+                yf.Login(2);
+                Dictionary<string, BaseItemInfo> yfItems = yf.GetSellingItems();
+
+                //获取一号网在售列表
+                Login();
+                Dictionary<string, BaseItemInfo> yyItems = GetSellingItems();
+
+                //比对上下架并同步库存
+                foreach (BaseItemInfo yfItem in yfItems.Values)
+                {
+                    bool isInSellingList = false;
+                    foreach (BaseItemInfo yyItem in yyItems.Values)
+                    {
+                        if (CommonFun.IsSameFormat(yfItem.Format, yyItem.Format, yfItem.Name, yfItem.Name))
+                        {
+                            //同步库存
+                            isInSellingList = true;
+                            break;
+                        }
+                    }
+
+                    if (!isInSellingList)
+                    {
+                        //上架
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex);
+            }
+        }
+
         public void ReadAllItemUrl()
         {
             int total = AllMenuUrl.Count;
@@ -1673,114 +1903,124 @@ namespace GetWebPageDate.Util.ReadWebPage
         /// <summary>
         /// 发布新品
         /// </summary>
-        public void UpNewItem(BaseItemInfo item)
+        public bool UpNewItem(BaseItemInfo item)
         {
-            //1、查找基本信息
-            string sUrl = "http://popadmin.111.com.cn/admin/item/getItems.action";
-
-            string sDataPostStr = string.Format("skuName={0}", CommonFun.GetUrlEncode(item.Name));
-            string itemsContent = request.HttpPost(sUrl, sDataPostStr);
-
-            itemsContent = itemsContent.Replace("attrs:{", "\"");
-            itemsContent = itemsContent.Replace("\"}", "\"");
-            MatchCollection ms = CommonFun.GetValues(itemsContent, "{", "}");
-
-            string id = null;
-            string productNO = null;
-            string catalogId = null;
-            string catalogName = null;
-            string firstCatalogId = null;
-            string firstCategoryName = null;
-            string secondCategoryName = null;
-            string productName = null;
-            string approvalnum = null;
-            string norms = null;
-            string brandName = null;
-            string manufacturer = null;
-            string barCode = null;
-            string weight = null;
-            string prescription = null;
-            foreach (Match m in ms)
+            try
             {
-                string format = CommonFun.GetValue(m.Value, "\"norms\":\"", "\"");
 
-                if (CommonFun.IsSameFormat(format, item.Format, item.Name, item.Name))
+
+                //1、查找基本信息
+                string sUrl = "http://popadmin.111.com.cn/admin/item/getItems.action";
+
+                string sDataPostStr = string.Format("skuName={0}", CommonFun.GetUrlEncode(item.Name));
+                string itemsContent = request.HttpPost(sUrl, sDataPostStr);
+
+                itemsContent = itemsContent.Replace("attrs:{", "\"");
+                itemsContent = itemsContent.Replace("\"}", "\"");
+                MatchCollection ms = CommonFun.GetValues(itemsContent, "{", "}");
+
+                string id = null;
+                string productNO = null;
+                string catalogId = null;
+                string catalogName = null;
+                string firstCatalogId = null;
+                string firstCategoryName = null;
+                string secondCategoryName = null;
+                string productName = null;
+                string approvalnum = null;
+                string norms = null;
+                string brandName = null;
+                string manufacturer = null;
+                string barCode = null;
+                string weight = null;
+                string prescription = null;
+                foreach (Match m in ms)
                 {
-                    id = CommonFun.GetValue(m.Value, "\"skuId\":", ",");
-                    productNO = CommonFun.GetValue(m.Value, "\"productNo\":\"", "\"");
-                    catalogId = CommonFun.GetValue(m.Value, "\"catalogId\":", ",");
-                    catalogName = CommonFun.GetValue(m.Value, "\"catalogName\":\"", "\"");
-                    firstCatalogId = CommonFun.GetValue(m.Value, "\"firstCatalogId\":", ",");
-                    firstCategoryName = CommonFun.GetValue(m.Value, "\"firstCatalogName\":\"", "\"");
-                    secondCategoryName = CommonFun.GetValue(m.Value, "\"secondCatalogName\":\"", "\"");
-                    productName = CommonFun.GetValue(m.Value, "\"productName\":\"", "\"");
-                    approvalnum = CommonFun.GetValue(m.Value, "\"approvalnum\":\"", "\"");
-                    norms = CommonFun.GetValue(m.Value, "\"norms\":\"", "\"");
-                    brandName = CommonFun.GetValue(m.Value, "\"brandName\":\"", "\"");
-                    manufacturer = CommonFun.GetValue(m.Value, "\"manufacturer\":\"", "\"");
-                    barCode = CommonFun.GetValue(m.Value, "\"barcode\":\"", "\"");
-                    weight = CommonFun.GetValue(m.Value, "\"weight\":", ",");
-                    prescription = CommonFun.GetValue(m.Value, "\"prescription\":", ",");
-                    break;
+                    string format = CommonFun.GetValue(m.Value, "\"norms\":\"", "\"");
+
+                    if (CommonFun.IsSameFormat(format, item.Format, item.Name, item.Name))
+                    {
+                        id = CommonFun.GetValue(m.Value, "\"skuId\":", ",");
+                        productNO = CommonFun.GetValue(m.Value, "\"productNo\":\"", "\"");
+                        catalogId = CommonFun.GetValue(m.Value, "\"catalogId\":", ",");
+                        catalogName = CommonFun.GetValue(m.Value, "\"catalogName\":\"", "\"");
+                        firstCatalogId = CommonFun.GetValue(m.Value, "\"firstCatalogId\":", ",");
+                        firstCategoryName = CommonFun.GetValue(m.Value, "\"firstCatalogName\":\"", "\"");
+                        secondCategoryName = CommonFun.GetValue(m.Value, "\"secondCatalogName\":\"", "\"");
+                        productName = CommonFun.GetValue(m.Value, "\"productName\":\"", "\"");
+                        approvalnum = CommonFun.GetValue(m.Value, "\"approvalnum\":\"", "\"");
+                        norms = CommonFun.GetValue(m.Value, "\"norms\":\"", "\"");
+                        brandName = CommonFun.GetValue(m.Value, "\"brandName\":\"", "\"");
+                        manufacturer = CommonFun.GetValue(m.Value, "\"manufacturer\":\"", "\"");
+                        barCode = CommonFun.GetValue(m.Value, "\"barcode\":\"", "\"");
+                        weight = CommonFun.GetValue(m.Value, "\"weight\":", ",");
+                        prescription = CommonFun.GetValue(m.Value, "\"prescription\":", ",");
+                        break;
+                    }
+                }
+
+                if (!string.IsNullOrEmpty(id))
+                {
+                    //2、选择发布 商品id
+                    string pUrl = "http://popadmin.111.com.cn/admin/item/checkSkuId.action";
+                    string pDataStr = string.Format("skuId={0}", id);
+                    string pContent = request.HttpPost(pUrl, pDataStr);
+
+                    //3、保存前检测  
+                    string cUrl = "http://popadmin.111.com.cn/admin/item/checkNewItemStandard.action";
+                    string cDataStr = string.Format("skuName={0}", HttpUtility.UrlEncode(productName, Encoding.GetEncoding("utf-8")).ToUpper());
+                    string cContent = request.HttpPost(cUrl, cDataStr);
+
+                    string itemId = CommonFun.GetValue(cContent, "\"itemId\":", ",");
+                    if (string.IsNullOrEmpty(itemId))
+                    {
+                        itemId = CommonFun.GetValue(cContent, "\"itemId\":", "}");
+                    }
+                    //4、保存
+                    string saveUrl = "http://popadmin.111.com.cn/admin/item/saveItemBaseInfo.action?pageType=itempublish_old";
+                    string sDataStr = string.Format("tempProduct.popItemId=&tempProduct.itemId=&tempProduct.skuId={0}&tempProduct.productNo={1}&venderService=&errorMsg=&tempProduct.catalogId={2}&tempProduct.secondCategoryId=&tempProduct.firstCategoryId =&brandId=&itemId={3}&tempProduct.catalogName={4}&brandname=&fistCatalogId={5}&tempProduct.firstCategoryName={6}&tempProduct.secondCategoryName={7}&tempProduct.outerItemId=null&tempProduct.outerSkuId=null&tempProduct.productName={8}&tempProduct.approvalnum={9}&tempProduct.norms={10}&tempProduct.brandName={11}&tempProduct.manufacturer={12}&tempProduct.weight={14}&tempProduct.barCode={13}&tempProduct.isHaiTao=0&tempProduct.prescription={15}",
+                        id, productNO, catalogId, itemId, HttpUtility.UrlEncode(catalogName, Encoding.GetEncoding("utf-8")).ToUpper(), firstCatalogId, HttpUtility.UrlEncode(firstCategoryName, Encoding.GetEncoding("utf-8")).ToUpper(), HttpUtility.UrlEncode(secondCategoryName, Encoding.GetEncoding("utf-8")).ToUpper(), HttpUtility.UrlEncode(productName, Encoding.GetEncoding("utf-8")).ToUpper(), HttpUtility.UrlEncode(approvalnum, Encoding.GetEncoding("utf-8")).ToUpper(), HttpUtility.UrlEncode(norms, Encoding.GetEncoding("utf-8")).ToUpper(), HttpUtility.UrlEncode(brandName, Encoding.GetEncoding("utf-8")).ToUpper(), HttpUtility.UrlEncode(manufacturer, Encoding.GetEncoding("utf-8")).ToUpper(), barCode, weight, prescription);
+                    string uri = "";
+                    string content = request.HttpPost(saveUrl, sDataStr, ref uri);
+
+                    string popItemId = uri.Split('?')[1];
+                    //5、获取新发布商品信息
+                    string qUrl = "http://popadmin.111.com.cn/admin/item/queryItemByPop.action";
+
+                    string qContent = request.HttpPost(qUrl, popItemId);
+                    qContent = CommonFun.GetValue(qContent, "<form name=\"baseInfoForm\" id=\"baseInfoForm\" method=\"post\">", "</form>");
+                    string brandId = CommonFun.GetValue(qContent, "\"brandId\" value=\"", "\"");
+                    string venderId = CommonFun.GetValue(qContent, "venderId\" value=\"", "\"");
+                    string tagInx = CommonFun.GetValue(qContent, "tagInx\" value=\"", "\"");
+                    string brandCheckStatus = CommonFun.GetValue(qContent, "brandCheckStatus\" value=\"", "\"");
+                    //是否无理由退货
+                    string isEdit = CommonFun.GetValue(qContent, "isEdit\" value=\"", "\"");
+                    //店铺分类
+                    string inShopCataIds = "22207";
+                    //市场价
+                    string recommendPrice = "18";
+                    //销售价
+                    string originalPrice = "15";
+                    //库存
+                    string quantity = "20";
+                    string storeSchemeId = "3681";
+                    string frightTemplateId = "2258";
+
+                    //6、填写价格和分类
+                    popItemId = CommonFun.GetValue(popItemId, "popItemId=", "&");
+                    string wUrl = "http://popadmin.111.com.cn/admin/item/saveItemBaseInfo.action?pageType=itempublish_old&isOld=true";
+                    string wData = string.Format("tempProduct.popItemId={0}&tempProduct.itemId={1}&tempProduct.skuId={2}&tempProduct.productNo=&venderService=0&errorMsg=save_suc&firstCategoryId=&catalogId={3}&brandId={4}&tempProduct.venderId={5}&tagInx={6}&tempProduct.brandCheckStatus={7}&tempProduct.brandName={8}&isEdit=false&tempProduct.catalogName={9}&tempProduct.catalogId={10}&tempProduct.brandId={11}&itemId={12}&tempProduct.productName={13}&tempProduct.productSubTitle=&tempProduct.barCode=&tempProduct.approvalnum=&tempProduct.approvalnum={14}&tempProduct.norms={15}&tempProduct.exChangedDay=0&tempProduct.haiTaoAddress=0&tempProduct.haiTaoCountry=&tempProduct.isHaiTao=0&tempProduct.inshopCataId=&inShopCataIds={16}&tempProduct.recommendPrice={17}&tempProduct.originalPrice={18}&tempProduct.weight={19}&tempProduct.quantity={20}&tempProduct.extProductNo=&tempProduct.storeSchemeId={21}&tempProduct.frightTemplateId={22}&ImgId=&btocPictureId=&pictureId=&imgPic=&imgtxt=&imgtxthid=&ImgId=&btocPictureId=&pictureId=&imgPic=&imgtxt=&imgtxthid=&ImgId=&btocPictureId=&pictureId=&imgPic=&imgtxt=&imgtxthid=&ImgId=&btocPictureId=&pictureId=&imgPic=&imgtxt=&imgtxthid=&ImgId=&btocPictureId=&pictureId=&imgPic=&imgtxt=&imgtxthid=&ImgId=&btocPictureId=&pictureId=&imgPic=&imgtxt=&imgtxthid=&descModel.itemId={23}"
+                        , popItemId, itemId, id, catalogId, brandId, venderId, tagInx, brandCheckStatus, brandName, catalogName, catalogId, brandId, itemId, productName, approvalnum, norms, inShopCataIds, recommendPrice, originalPrice, weight, quantity, storeSchemeId, frightTemplateId, itemId);
+                    content = request.HttpPost(wUrl, wData);
+                    return true;
+                    //7、获取新发布商品信息http://popadmin.111.com.cn/admin/item/queryItemByPop.action?popItemId=889041&errorMsg=save_suc
                 }
             }
-
-            if (!string.IsNullOrEmpty(id))
+            catch (Exception ex)
             {
-                //2、选择发布 商品id
-                string pUrl = "http://popadmin.111.com.cn/admin/item/checkSkuId.action";
-                string pDataStr = string.Format("skuId={0}", id);
-                string pContent = request.HttpPost(pUrl, pDataStr);
-
-                //3、保存前检测  
-                string cUrl = "http://popadmin.111.com.cn/admin/item/checkNewItemStandard.action";
-                string cDataStr = string.Format("skuName={0}", HttpUtility.UrlEncode(productName, Encoding.GetEncoding("utf-8")).ToUpper());
-                string cContent = request.HttpPost(cUrl, cDataStr);
-
-                string itemId = CommonFun.GetValue(cContent, "\"itemId\":", ",");
-                if (string.IsNullOrEmpty(itemId))
-                {
-                    itemId = CommonFun.GetValue(cContent, "\"itemId\":", "}");
-                }
-                //4、保存
-                string saveUrl = "http://popadmin.111.com.cn/admin/item/saveItemBaseInfo.action?pageType=itempublish_old";
-                string sDataStr = string.Format("tempProduct.popItemId=&tempProduct.itemId=&tempProduct.skuId={0}&tempProduct.productNo={1}&venderService=&errorMsg=&tempProduct.catalogId={2}&tempProduct.secondCategoryId=&tempProduct.firstCategoryId =&brandId=&itemId={3}&tempProduct.catalogName={4}&brandname=&fistCatalogId={5}&tempProduct.firstCategoryName={6}&tempProduct.secondCategoryName={7}&tempProduct.outerItemId=null&tempProduct.outerSkuId=null&tempProduct.productName={8}&tempProduct.approvalnum={9}&tempProduct.norms={10}&tempProduct.brandName={11}&tempProduct.manufacturer={12}&tempProduct.weight={14}&tempProduct.barCode={13}&tempProduct.isHaiTao=0&tempProduct.prescription={15}",
-                    id, productNO, catalogId, itemId, HttpUtility.UrlEncode(catalogName, Encoding.GetEncoding("utf-8")).ToUpper(), firstCatalogId, HttpUtility.UrlEncode(firstCategoryName, Encoding.GetEncoding("utf-8")).ToUpper(), HttpUtility.UrlEncode(secondCategoryName, Encoding.GetEncoding("utf-8")).ToUpper(), HttpUtility.UrlEncode(productName, Encoding.GetEncoding("utf-8")).ToUpper(), HttpUtility.UrlEncode(approvalnum, Encoding.GetEncoding("utf-8")).ToUpper(), HttpUtility.UrlEncode(norms, Encoding.GetEncoding("utf-8")).ToUpper(), HttpUtility.UrlEncode(brandName, Encoding.GetEncoding("utf-8")).ToUpper(), HttpUtility.UrlEncode(manufacturer, Encoding.GetEncoding("utf-8")).ToUpper(), barCode, weight, prescription);
-                string uri = "";
-                string content = request.HttpPost(saveUrl, sDataStr, ref uri);
-
-                string popItemId = uri.Split('?')[1];
-                //5、获取新发布商品信息
-                string qUrl = "http://popadmin.111.com.cn/admin/item/queryItemByPop.action";
-
-                string qContent = request.HttpPost(qUrl, popItemId);
-                qContent = CommonFun.GetValue(qContent, "<form name=\"baseInfoForm\" id=\"baseInfoForm\" method=\"post\">", "</form>");
-                string brandId = CommonFun.GetValue(qContent, "\"brandId\" value=\"", "\"");
-                string venderId = CommonFun.GetValue(qContent, "venderId\" value=\"", "\"");
-                string tagInx = CommonFun.GetValue(qContent, "tagInx\" value=\"", "\"");
-                string brandCheckStatus = CommonFun.GetValue(qContent, "brandCheckStatus\" value=\"", "\"");
-                //是否无理由退货
-                string isEdit = CommonFun.GetValue(qContent, "isEdit\" value=\"", "\"");
-                //店铺分类
-                string inShopCataIds = "22207";
-                //市场价
-                string recommendPrice = "18";
-                //销售价
-                string originalPrice = "15";
-                //库存
-                string quantity = "20";
-                string storeSchemeId = "3681";
-                string frightTemplateId = "2258";
-
-                //6、填写价格和分类
-                popItemId = CommonFun.GetValue(popItemId, "popItemId=", "&");
-                string wUrl = "http://popadmin.111.com.cn/admin/item/saveItemBaseInfo.action?pageType=itempublish_old&isOld=true";
-                string wData = string.Format("tempProduct.popItemId={0}&tempProduct.itemId={1}&tempProduct.skuId={2}&tempProduct.productNo=&venderService=0&errorMsg=save_suc&firstCategoryId=&catalogId={3}&brandId={4}&tempProduct.venderId={5}&tagInx={6}&tempProduct.brandCheckStatus={7}&tempProduct.brandName={8}&isEdit=false&tempProduct.catalogName={9}&tempProduct.catalogId={10}&tempProduct.brandId={11}&itemId={12}&tempProduct.productName={13}&tempProduct.productSubTitle=&tempProduct.barCode=&tempProduct.approvalnum=&tempProduct.approvalnum={14}&tempProduct.norms={15}&tempProduct.exChangedDay=0&tempProduct.haiTaoAddress=0&tempProduct.haiTaoCountry=&tempProduct.isHaiTao=0&tempProduct.inshopCataId=&inShopCataIds={16}&tempProduct.recommendPrice={17}&tempProduct.originalPrice={18}&tempProduct.weight={19}&tempProduct.quantity={20}&tempProduct.extProductNo=&tempProduct.storeSchemeId={21}&tempProduct.frightTemplateId={22}&ImgId=&btocPictureId=&pictureId=&imgPic=&imgtxt=&imgtxthid=&ImgId=&btocPictureId=&pictureId=&imgPic=&imgtxt=&imgtxthid=&ImgId=&btocPictureId=&pictureId=&imgPic=&imgtxt=&imgtxthid=&ImgId=&btocPictureId=&pictureId=&imgPic=&imgtxt=&imgtxthid=&ImgId=&btocPictureId=&pictureId=&imgPic=&imgtxt=&imgtxthid=&ImgId=&btocPictureId=&pictureId=&imgPic=&imgtxt=&imgtxthid=&descModel.itemId={23}"
-                    , popItemId, itemId, id, catalogId, brandId, venderId, tagInx, brandCheckStatus, brandName, catalogName, catalogId, brandId, itemId, productName, approvalnum, norms, inShopCataIds, recommendPrice, originalPrice, weight, quantity, storeSchemeId, frightTemplateId, itemId);
-                content = request.HttpPost(wUrl, wData);
-                //7、获取新发布商品信息http://popadmin.111.com.cn/admin/item/queryItemByPop.action?popItemId=889041&errorMsg=save_suc
+                Console.WriteLine(ex);
             }
-
+            return false;
         }
     }
 }

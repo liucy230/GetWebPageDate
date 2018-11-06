@@ -1,5 +1,6 @@
 ﻿using GetWebPageDate.Http;
 using GetWebPageDate.Util.Item;
+using Microsoft.Office.Interop.Excel;
 using System;
 using System.Collections.Generic;
 using System.Data;
@@ -8,6 +9,7 @@ using System.Drawing;
 using System.Drawing.Imaging;
 using System.IO;
 using System.Linq;
+using System.Reflection;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.RegularExpressions;
@@ -24,7 +26,7 @@ namespace GetWebPageDate.Util
 
         private static string password = "123123";
 
-        public static DataTable ReadXLS(string fileName)
+        public static System.Data.DataTable ReadXLS(string fileName, string sheetName = "Sheet1")
         {
             try
             {
@@ -41,15 +43,19 @@ namespace GetWebPageDate.Util
                 //    }
                 //    Console.WriteLine(rowStr);
                 //}
+                if (!File.Exists(fileName))
+                {
+                    return null;
+                }
 
                 var connectionString = string.Format("Provider=Microsoft.Ace.OleDb.12.0;" + "data source={0};Extended Properties='Excel 12.0; HDR=Yes; IMEX=1'", fileName);
 
-                var adapter = new OleDbDataAdapter("SELECT * FROM [Sheet1$]", connectionString);
+                var adapter = new OleDbDataAdapter(string.Format("SELECT * FROM [{0}$]", sheetName), connectionString);
                 var ds = new DataSet();
 
                 adapter.Fill(ds, "anyNameHere");
-
-                DataTable data = ds.Tables["anyNameHere"];
+                adapter.Dispose();
+                System.Data.DataTable data = ds.Tables["anyNameHere"];
                 return data;
             }
             catch (Exception ex)
@@ -70,7 +76,120 @@ namespace GetWebPageDate.Util
             return isToUpper ? System.Web.HttpUtility.UrlEncode(param).ToUpper() : System.Web.HttpUtility.UrlEncode(param);
         }
 
-        public static bool UpdateXLS(string fileName, string[] key, string[] value, string whereKey, string whereValue)
+        public static bool CreateXLS(string fileName)
+        {
+            Application app = null;
+            Workbook workbook;
+            Worksheet wSheet;
+            try
+            {
+                string baseFilePath = System.Environment.CurrentDirectory;
+
+                app = new Application();
+
+                workbook = app.Workbooks.Add(Missing.Value);
+
+                wSheet = workbook.Worksheets[1] as Worksheet;
+
+                wSheet.SaveAs(baseFilePath + "/" + fileName, Missing.Value, Missing.Value, Missing.Value, Missing.Value, Missing.Value, Missing.Value, Missing.Value, Missing.Value, Missing.Value);
+
+                workbook.Save();
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex);
+            }
+
+            if (app != null)
+            {
+                wSheet = null;
+                workbook = null;
+                app.Quit();
+                app = null;
+            }
+            return true;
+        }
+
+        public static bool InsertToXLS(string fileName, string sheetName, string[] value)
+        {
+            sheetName = string.IsNullOrEmpty(sheetName) ? "info" : sheetName;
+            OleDbConnection connection = null;
+            try
+            {
+                var connectionString = string.Format("Provider=Microsoft.Ace.OleDb.12.0;" + "data source={0};Extended Properties='Excel 12.0; HDR=Yes; IMEX=0'", fileName);
+
+                connection = new OleDbConnection(connectionString);
+
+                connection.Open();
+
+                string sqlStr;
+
+                System.Data.DataTable dt = connection.GetOleDbSchemaTable(OleDbSchemaGuid.Tables_Info, null);
+                bool existTable = false;
+                foreach (DataRow dr in dt.Rows)//检查是否有信息表
+                {
+                    if (dr["TABLE_NAME"].ToString() == sheetName + "$")//要加个$号
+                        existTable = true;
+                }
+
+                if (!existTable)
+                {
+                    for (int i = 0; i < value.Length; i++)
+                    {
+                        value[i] = "[" + value[i].Trim() + "]";
+                        //if (value[i].Contains("("))
+                        //{
+                        //    value[i] = value[i].Replace("(", "'('");
+                        //}
+
+                        //if (value[i].Contains(")"))
+                        //{
+                        //    value[i] = value[i].Replace(")", "')'");
+                        //}
+                    }
+                    string valueStr = string.Join(" char(100),", value);
+                    sqlStr = @"create table [" + sheetName + "] (" + valueStr + " char(100))";
+                }
+                else
+                {
+                    //下面的代码用OleDbCommand的parameter添加参数
+                    string valueStr = string.Join("','", value);
+                    sqlStr = "insert into [" + sheetName + "$] values('" + valueStr + "')";
+                }
+
+                OleDbCommand Cmd = new OleDbCommand(sqlStr, connection);
+                Cmd.ExecuteNonQuery();
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex);
+            }
+
+            if (connection != null)
+            {
+                connection.Close();
+            }
+
+            return true;
+        }
+
+        public static bool WriteXLS(string fileName, BaseItemInfo item)
+        {
+            string filePath = fileName;
+            CheckAndCreateFolder(filePath);
+
+            if (!File.Exists(filePath))
+            {
+                CreateXLS(filePath);
+                InsertToXLS(fileName, "info", item.GetLogHeadLine().Split(','));
+            }
+
+            InsertToXLS(fileName, "info", item.GetLogStrArr());
+
+            return true;
+        }
+
+        public static bool UpdateXLS(string fileName, string[] key, string[] value, string whereKey, string whereValue, string sheetName = "Sheet1$")
         {
             OleDbConnection connection = null;
             try
@@ -81,7 +200,7 @@ namespace GetWebPageDate.Util
 
                 connection.Open();
 
-                string updateStr = "UPDATE [Sheet1$] SET ";
+                string updateStr = string.Format("UPDATE [%s$] SET ", sheetName);
 
                 for (int i = 0; i < key.Length; i++)
                 {
@@ -104,13 +223,13 @@ namespace GetWebPageDate.Util
             }
             catch (Exception ex)
             {
-                if (connection != null)
-                {
-                    connection.Close();
-                }
                 Console.WriteLine(ex);
             }
 
+            if (connection != null)
+            {
+                connection.Close();
+            }
             return false;
         }
 

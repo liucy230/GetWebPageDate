@@ -190,7 +190,8 @@ namespace GetWebPageDate.Util.ReadWebPage
                                 Console.WriteLine(ex);
                             }
                         }
-                        string key = item.Name + item.Format + item.Created;
+                        //string key = item.Name + item.Format + item.Created;
+                        string key = item.ViewCount;
                         if (!items.ContainsKey(key))
                         {
                             items.Add(key, item);
@@ -230,7 +231,7 @@ namespace GetWebPageDate.Util.ReadWebPage
                 {
                     items.Add(key, item);
                     historyItems.Remove(key);
-                    CommonFun.WriteXLS(fileName + "/RemoveHistory" + ticks + ".xls", item);
+                    CommonFun.WriteCSV(fileName + "/RemoveHistory" + ticks + fileExtendName, item);
                 }
             }
 
@@ -290,7 +291,7 @@ namespace GetWebPageDate.Util.ReadWebPage
                     if (downItem.ID == item.ID && CommonFun.IsSameFormat(item.Format, downItem.Format, item.Name, downItem.Name))
                     {
                         DownItem(item);
-                        CommonFun.WriteXLS(fileName + "down" + ticks + ".xls", item);
+                        CommonFun.WriteCSV(fileName + "down" + ticks + fileExtendName, item);
                     }
                 }
             }
@@ -298,115 +299,123 @@ namespace GetWebPageDate.Util.ReadWebPage
             count = 0;
             foreach (KeyValuePair<string, BaseItemInfo> value in yfSellingItems)
             {
-                Console.WriteLine("{0} up and sync item totalCount:{1} curCount:{2}", DateTime.Now, yfSellingItems.Count, ++count);
-                BaseItemInfo yfItem = value.Value;
-                //是否在售
-                bool isSelling = false;
-                foreach (BaseItemInfo item in yySellingItems.Values)
+                try
                 {
-                    if (item.ID == yfItem.ID && CommonFun.IsSameFormat(item.Format, yfItem.Format, item.Name, yfItem.Name))
-                    {
-                        isSelling = true;
-                        int historyCount = GetHistoryStock(value.Key, yfHistoryItems);
-                        //TODO 同步库存
-                        if (historyCount != int.MinValue)
-                        {
-                            int yfCount = Convert.ToInt32(yfItem.Inventory);
-                            int yyCount = Convert.ToInt32(item.Inventory);
-
-                            int diff = historyCount - yfCount;
-                            diff += historyCount - yyCount;
-
-                            if (diff > 0)
-                            {
-                                historyCount -= diff;
-                                string historyCountStr = historyCount.ToString();
-                                UpdateStock(item.ViewCount, historyCountStr);
-                                yfHistoryItems[value.Key].Inventory = historyCountStr;
-                                UpdateHistoryStock(yfHistoryItems[value.Key]);
-                                item.Inventory = historyCountStr;
-                                yf.UpdateItemInfo(item);
-                                CommonFun.WriteXLS(fileName + "change_stock" + ticks + ".xls", yfItem);
-                            }
-                            else
-                            {
-                                Console.WriteLine("Stock error history:{0} yf:{1} yy:{2}", historyCount, yfCount, yyCount);
-                            }
-                        }
-                        else
-                        {
-                            //重新同步库存已药房的为基础库存
-                            Console.WriteLine("sync stock key;{0} stock:{}...........", value.Key, yfItem.Inventory);
-                            CommonFun.WriteXLS(fileName + "sync_stock" + ticks + ".xls", yfItem);
-                            yfHistoryItems.Add(value.Key, yfItem);
-                            UpdateStock(item.ViewCount, yfItem.Inventory);
-                            AddHistoryStock(yfItem);
-                        }
-
-                        break;
-                    }
-                }
-
-                if (!isSelling)
-                {
-                    //是否在仓库
-                    bool isInStorehouse = false;
-
-                    foreach (BaseItemInfo item in yyStorehouseItems.Values)
+                    Console.WriteLine("{0} up and sync item totalCount:{1} curCount:{2}", DateTime.Now, yfSellingItems.Count, ++count);
+                    BaseItemInfo yfItem = value.Value;
+                    //是否在售
+                    bool isSelling = false;
+                    foreach (BaseItemInfo item in yySellingItems.Values)
                     {
                         if (item.ID == yfItem.ID && CommonFun.IsSameFormat(item.Format, yfItem.Format, item.Name, yfItem.Name))
                         {
-                            //重新上架 TODO
-                            isInStorehouse = true;
-                            item.Inventory = yfItem.Inventory;
-                            UpItem(item);
-                            UpdatePirceAndQuantity(item.ViewCount, null, null, yfItem.Inventory);
-                            CommonFun.WriteXLS(fileName + "upItem" + ticks + ".xls", item);
-
-                            if (yfHistoryItems.ContainsKey(value.Key))
+                            isSelling = true;
+                            int historyCount = GetHistoryStock(value.Key, yfHistoryItems);
+                            //TODO 同步库存
+                            if (historyCount != int.MinValue)
                             {
-                                yfHistoryItems[value.Key].Inventory = yfItem.Inventory;
-                                UpdateHistoryStock(yfHistoryItems[value.Key]);
+                                int yfCount = Convert.ToInt32(yfItem.Inventory);
+                                int yyCount = Convert.ToInt32(item.Inventory);
+
+                                int diff = historyCount - yfCount;
+                                diff += historyCount - yyCount;
+
+                                if (diff > 0)
+                                {
+                                    historyCount -= diff;
+                                    string historyCountStr = historyCount.ToString();
+                                    UpdateStock(item.ViewCount, historyCountStr);
+                                    yfHistoryItems[value.Key].Inventory = historyCountStr;
+                                    UpdateHistoryStock(yfHistoryItems[value.Key]);
+                                    item.Inventory = historyCountStr;
+                                    yf.UpdateItemInfo(item);
+                                    CommonFun.WriteCSV(fileName + "change_stock" + ticks + fileExtendName, yfItem);
+                                }
+                                else
+                                {
+                                    Console.WriteLine("Stock error history:{0} yf:{1} yy:{2}", historyCount, yfCount, yyCount);
+                                }
                             }
                             else
                             {
+                                //重新同步库存已药房的为基础库存
+                                Console.WriteLine("sync stock key;{0} stock:{1}...........", value.Key, yfItem.Inventory);
+                                CommonFun.WriteCSV(fileName + "sync_stock" + ticks + fileExtendName, yfItem);
                                 yfHistoryItems.Add(value.Key, yfItem);
+                                UpdateStock(item.ViewCount, yfItem.Inventory);
                                 AddHistoryStock(yfItem);
                             }
-                            
+
                             break;
                         }
                     }
 
-                    if (!isInStorehouse)
+                    if (!isSelling)
                     {
-                        //是否待发不
-                        bool isInReadyPublish = false;
+                        //是否在仓库
+                        bool isInStorehouse = false;
 
-                        foreach (BaseItemInfo item in yyReadyPublishItems.Values)
+                        foreach (BaseItemInfo item in yyStorehouseItems.Values)
                         {
                             if (item.ID == yfItem.ID && CommonFun.IsSameFormat(item.Format, yfItem.Format, item.Name, yfItem.Name))
                             {
+                                //重新上架 TODO
                                 isInStorehouse = true;
-                                CommonFun.WriteXLS(fileName + "publishItem" + ticks + ".xls", item);
+                                item.Inventory = yfItem.Inventory;
+                                UpItem(item);
+                                UpdatePirceAndQuantity(item.ViewCount, "100", "103", yfItem.Inventory);
+                                CommonFun.WriteCSV(fileName + "upItem" + ticks + fileExtendName, item);
+
+                                if (yfHistoryItems.ContainsKey(value.Key))
+                                {
+                                    yfHistoryItems[value.Key].Inventory = yfItem.Inventory;
+                                    UpdateHistoryStock(yfHistoryItems[value.Key]);
+                                }
+                                else
+                                {
+                                    yfHistoryItems.Add(value.Key, yfItem);
+                                    AddHistoryStock(yfItem);
+                                }
+
                                 break;
                             }
                         }
 
-                        if (!isInReadyPublish)
+                        if (!isInStorehouse)
                         {
-                            //上架新品 TODO
-                            if (UpNewItem(yfItem))
+                            //是否待发不
+                            bool isInReadyPublish = false;
+
+                            foreach (BaseItemInfo item in yyReadyPublishItems.Values)
                             {
-                                CommonFun.WriteXLS(fileName + "upNewItemSuccessed" + ticks + ".xls", yfItem);
-                            }
-                            else
-                            {
-                                CommonFun.WriteXLS(fileName + "upNewItemFailed" + ticks + ".xls", yfItem);
+                                if (item.ID == yfItem.ID && CommonFun.IsSameFormat(item.Format, yfItem.Format, item.Name, yfItem.Name))
+                                {
+                                    isInReadyPublish = true;
+                                    CommonFun.WriteCSV(fileName + "publishItem" + ticks + fileExtendName, item);
+                                    break;
+                                }
                             }
 
+                            if (!isInReadyPublish)
+                            {
+                                //上架新品 TODO
+                                if (UpNewItem(yfItem))
+                                {
+                                    CommonFun.WriteCSV(fileName + "upNewItemSuccessed" + ticks + fileExtendName, yfItem);
+                                }
+                                else
+                                {
+                                    CommonFun.WriteCSV(fileName + "upNewItemFailed" + ticks + fileExtendName, yfItem);
+                                }
+
+                            }
                         }
+
                     }
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine(ex);
                 }
             }
 
@@ -910,20 +919,28 @@ namespace GetWebPageDate.Util.ReadWebPage
 
                     BaseItemInfo item = null;
 
-                    if (!string.IsNullOrEmpty(iUrl.Value))
+                    if (tagInx == 2)
                     {
                         content = request.HttpGet(iUrl.Value, Encoding.GetEncoding("gb2312"));
-
                         item = GetOneItem(content);
                     }
                     else
                     {
-                        string infoUrl = string.Format("http://popadmin.111.com.cn/admin/item/queryItemByPop.action?popItemId={0}&tagInx=1&brandCheckStatus=2", iUrl.Key);
-
-                        content = request.HttpGet(infoUrl);
+                        content = request.HttpGet(iUrl.Value);
 
                         item = GetOneFromDownList(content);
                     }
+
+                    //if (!string.IsNullOrEmpty(iUrl.Value))
+                    //{
+
+                    //}
+                    //else
+                    //{
+                    //    string infoUrl = string.Format("http://popadmin.111.com.cn/admin/item/queryItemByPop.action?popItemId={0}&tagInx=1&brandCheckStatus=2", iUrl.Key);
+
+
+                    //}
 
                     if (item != null)
                     {
@@ -1159,7 +1176,15 @@ namespace GetWebPageDate.Util.ReadWebPage
                 string trInfo = CommonFun.GetValue(tM.Value, "<p class=\"goods_name\">", "</p>");
 
                 string itemUrl = CommonFun.GetValue(trInfo, "href=\"", "\"");
+                if (string.IsNullOrEmpty(itemUrl))
+                {
+                    itemUrl = CommonFun.GetValue(tM.Value, "onclick=\"editNewTempProduct", "\"");
+                    itemUrl = itemUrl.Replace("(", "").Replace(")", "");
+                    itemUrl = itemUrl.Replace("'", "");
+                    string[] itemInfoArray = itemUrl.Split(',');
 
+                    itemUrl = string.Format("http://popadmin.111.com.cn/admin/item/queryItemByPop.action?popItemId={0}&tagInx={1}&brandCheckStatus={2}", itemInfoArray[0], itemInfoArray[1], itemInfoArray[2]);
+                }
                 string idInfo = CommonFun.GetValue(tM.Value, "<img id=\"", "\"");
 
                 itemIdAndUrls.Add(idInfo, itemUrl);
@@ -1310,7 +1335,8 @@ namespace GetWebPageDate.Util.ReadWebPage
                             string pno = CommonFun.GetValue(itemInfoStr, "item_pno = '", "'");
                             string provinceId = "20";
                             string postData = string.Format("itemid={0}&pno={1}&provinceId={2}", itemId, pno, provinceId);
-                            string countInfo = request.HttpPost(cUrl, postData);
+                            string countInfo = request.HttpGet(cUrl + "?" + postData);
+                            //string countInfo = request.HttpPost(cUrl, postData);
                             countInfo = CommonFun.GetValue(countInfo, "\\[\"", "\"");
                             string[] arrCountInfo = countInfo.Split('_');
                             int count = Convert.ToInt32(arrCountInfo[2]);
@@ -1907,8 +1933,6 @@ namespace GetWebPageDate.Util.ReadWebPage
         {
             try
             {
-
-
                 //1、查找基本信息
                 string sUrl = "http://popadmin.111.com.cn/admin/item/getItems.action";
 
@@ -1937,8 +1961,8 @@ namespace GetWebPageDate.Util.ReadWebPage
                 foreach (Match m in ms)
                 {
                     string format = CommonFun.GetValue(m.Value, "\"norms\":\"", "\"");
-
-                    if (CommonFun.IsSameFormat(format, item.Format, item.Name, item.Name))
+                    approvalnum = CommonFun.GetValue(m.Value, "\"approvalnum\":\"", "\"");
+                    if (approvalnum.Trim() == item.ID && CommonFun.IsSameFormat(format, item.Format, item.Name, item.Name))
                     {
                         id = CommonFun.GetValue(m.Value, "\"skuId\":", ",");
                         productNO = CommonFun.GetValue(m.Value, "\"productNo\":\"", "\"");
@@ -1966,9 +1990,15 @@ namespace GetWebPageDate.Util.ReadWebPage
                     string pDataStr = string.Format("skuId={0}", id);
                     string pContent = request.HttpPost(pUrl, pDataStr);
 
+                    if (pContent == "1")
+                    {
+                        Console.WriteLine("The item is up now id:{0} format:{1} created:{2}", item.ID, item.Format, item.Created);
+                        return false;
+                    }
+
                     //3、保存前检测  
                     string cUrl = "http://popadmin.111.com.cn/admin/item/checkNewItemStandard.action";
-                    string cDataStr = string.Format("skuName={0}", HttpUtility.UrlEncode(productName, Encoding.GetEncoding("utf-8")).ToUpper());
+                    string cDataStr = string.Format("approvalnum={1}&norms={2}&skuName={0}", HttpUtility.UrlEncode(productName, Encoding.GetEncoding("utf-8")).ToUpper(), CommonFun.GetUrlEncode(approvalnum), CommonFun.GetUrlEncode(norms, false));
                     string cContent = request.HttpPost(cUrl, cDataStr);
 
                     string itemId = CommonFun.GetValue(cContent, "\"itemId\":", ",");
@@ -1979,15 +2009,23 @@ namespace GetWebPageDate.Util.ReadWebPage
                     //4、保存
                     string saveUrl = "http://popadmin.111.com.cn/admin/item/saveItemBaseInfo.action?pageType=itempublish_old";
                     string sDataStr = string.Format("tempProduct.popItemId=&tempProduct.itemId=&tempProduct.skuId={0}&tempProduct.productNo={1}&venderService=&errorMsg=&tempProduct.catalogId={2}&tempProduct.secondCategoryId=&tempProduct.firstCategoryId =&brandId=&itemId={3}&tempProduct.catalogName={4}&brandname=&fistCatalogId={5}&tempProduct.firstCategoryName={6}&tempProduct.secondCategoryName={7}&tempProduct.outerItemId=null&tempProduct.outerSkuId=null&tempProduct.productName={8}&tempProduct.approvalnum={9}&tempProduct.norms={10}&tempProduct.brandName={11}&tempProduct.manufacturer={12}&tempProduct.weight={14}&tempProduct.barCode={13}&tempProduct.isHaiTao=0&tempProduct.prescription={15}",
-                        id, productNO, catalogId, itemId, HttpUtility.UrlEncode(catalogName, Encoding.GetEncoding("utf-8")).ToUpper(), firstCatalogId, HttpUtility.UrlEncode(firstCategoryName, Encoding.GetEncoding("utf-8")).ToUpper(), HttpUtility.UrlEncode(secondCategoryName, Encoding.GetEncoding("utf-8")).ToUpper(), HttpUtility.UrlEncode(productName, Encoding.GetEncoding("utf-8")).ToUpper(), HttpUtility.UrlEncode(approvalnum, Encoding.GetEncoding("utf-8")).ToUpper(), HttpUtility.UrlEncode(norms, Encoding.GetEncoding("utf-8")).ToUpper(), HttpUtility.UrlEncode(brandName, Encoding.GetEncoding("utf-8")).ToUpper(), HttpUtility.UrlEncode(manufacturer, Encoding.GetEncoding("utf-8")).ToUpper(), barCode, weight, prescription);
+                        id, productNO, catalogId, itemId, HttpUtility.UrlEncode(catalogName, Encoding.GetEncoding("utf-8")), firstCatalogId, HttpUtility.UrlEncode(firstCategoryName, Encoding.GetEncoding("utf-8")), HttpUtility.UrlEncode(secondCategoryName, Encoding.GetEncoding("utf-8")), HttpUtility.UrlEncode(productName, Encoding.GetEncoding("utf-8")), HttpUtility.UrlEncode(approvalnum, Encoding.GetEncoding("utf-8")), HttpUtility.UrlEncode(norms, Encoding.GetEncoding("utf-8")), HttpUtility.UrlEncode(brandName, Encoding.GetEncoding("utf-8")), HttpUtility.UrlEncode(manufacturer, Encoding.GetEncoding("utf-8")), barCode, weight, prescription);
                     string uri = "";
+                    Dictionary<string, string> heads = new Dictionary<string, string>();
+                    heads.Add("Referer", "http://popadmin.111.com.cn/admin/item/queryItemByPop.action");
+                    heads.Add("Content-Type", "application/x-www-form-urlencoded");
+                    heads.Add("User-Agent", "Mozilla/5.0 (Windows NT 6.1; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/70.0.3538.77 Safari/537.36");
                     string content = request.HttpPost(saveUrl, sDataStr, ref uri);
-
-                    string popItemId = uri.Split('?')[1];
+                    //string content = "";
+                    string getPopItemIdUrl = "http://popadmin.111.com.cn/admin/itemlist/showItem.action";
+                    string postData = string.Format("venderService=0&tagInx=0&itemCondition.pageIndex=1&itemCondition.searchType=1&itemCondition.productName={0}&itemCondition.productNos=&itemCondition.catalogName=&itemCondition.catalogId=&itemCondition.catalogLevel=&itemCondition.inshopCatalogName=&itemCondition.inshopCatalogId=&itemCondition.inshopCatalogLevel=&itemCondition.checkStatus=&itemCondition.brandCheckStatus=&itemCondition.pageSize=10", CommonFun.GetUrlEncode(productName));
+                    content = request.HttpPost(getPopItemIdUrl, postData);
+                    content = CommonFun.GetValue(content, "<td class=\"noBorLeft\">", "</td>");
+                    string popItemId = CommonFun.GetValue(content, "value=\"", "\""); //uri.Split('?')[1];
                     //5、获取新发布商品信息
-                    string qUrl = "http://popadmin.111.com.cn/admin/item/queryItemByPop.action";
+                    string qUrl = string.Format("http://popadmin.111.com.cn/admin/item/queryItemByPop.action?popItemId={0}&tagInx=0&brandCheckStatus=1", popItemId);
 
-                    string qContent = request.HttpPost(qUrl, popItemId);
+                    string qContent = request.HttpGet(qUrl);
                     qContent = CommonFun.GetValue(qContent, "<form name=\"baseInfoForm\" id=\"baseInfoForm\" method=\"post\">", "</form>");
                     string brandId = CommonFun.GetValue(qContent, "\"brandId\" value=\"", "\"");
                     string venderId = CommonFun.GetValue(qContent, "venderId\" value=\"", "\"");
@@ -1998,16 +2036,16 @@ namespace GetWebPageDate.Util.ReadWebPage
                     //店铺分类
                     string inShopCataIds = "22207";
                     //市场价
-                    string recommendPrice = "18";
+                    string recommendPrice = "103";
                     //销售价
-                    string originalPrice = "15";
+                    string originalPrice = "100";
                     //库存
                     string quantity = "20";
                     string storeSchemeId = "3681";
                     string frightTemplateId = "2258";
 
                     //6、填写价格和分类
-                    popItemId = CommonFun.GetValue(popItemId, "popItemId=", "&");
+                    //popItemId = CommonFun.GetValue(popItemId, "popItemId=", "&");
                     string wUrl = "http://popadmin.111.com.cn/admin/item/saveItemBaseInfo.action?pageType=itempublish_old&isOld=true";
                     string wData = string.Format("tempProduct.popItemId={0}&tempProduct.itemId={1}&tempProduct.skuId={2}&tempProduct.productNo=&venderService=0&errorMsg=save_suc&firstCategoryId=&catalogId={3}&brandId={4}&tempProduct.venderId={5}&tagInx={6}&tempProduct.brandCheckStatus={7}&tempProduct.brandName={8}&isEdit=false&tempProduct.catalogName={9}&tempProduct.catalogId={10}&tempProduct.brandId={11}&itemId={12}&tempProduct.productName={13}&tempProduct.productSubTitle=&tempProduct.barCode=&tempProduct.approvalnum=&tempProduct.approvalnum={14}&tempProduct.norms={15}&tempProduct.exChangedDay=0&tempProduct.haiTaoAddress=0&tempProduct.haiTaoCountry=&tempProduct.isHaiTao=0&tempProduct.inshopCataId=&inShopCataIds={16}&tempProduct.recommendPrice={17}&tempProduct.originalPrice={18}&tempProduct.weight={19}&tempProduct.quantity={20}&tempProduct.extProductNo=&tempProduct.storeSchemeId={21}&tempProduct.frightTemplateId={22}&ImgId=&btocPictureId=&pictureId=&imgPic=&imgtxt=&imgtxthid=&ImgId=&btocPictureId=&pictureId=&imgPic=&imgtxt=&imgtxthid=&ImgId=&btocPictureId=&pictureId=&imgPic=&imgtxt=&imgtxthid=&ImgId=&btocPictureId=&pictureId=&imgPic=&imgtxt=&imgtxthid=&ImgId=&btocPictureId=&pictureId=&imgPic=&imgtxt=&imgtxthid=&ImgId=&btocPictureId=&pictureId=&imgPic=&imgtxt=&imgtxthid=&descModel.itemId={23}"
                         , popItemId, itemId, id, catalogId, brandId, venderId, tagInx, brandCheckStatus, brandName, catalogName, catalogId, brandId, itemId, productName, approvalnum, norms, inShopCataIds, recommendPrice, originalPrice, weight, quantity, storeSchemeId, frightTemplateId, itemId);

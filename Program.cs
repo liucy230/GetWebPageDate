@@ -81,9 +81,9 @@ namespace GetWebPageDate
                 YiYaoWebRead yiYaoread = new YiYaoWebRead();
                 //yiYaoread.SyncYFItems();
                 //yiYaoread.GetSellingItem("1601910842", DateTime.Now);
-                yiYaoread.Start();
+                //yiYaoread.Start();
                 //yiYaoread.GetOrderDetail();
-                //yiYaoread.UpdatePrice();
+                yiYaoread.UpdatePrice();
                 //yiYaoread.Test();
                 //yiYaoread.MenuIndex = Convert.ToInt32(menuIndex);
                 //yiYaoread.Start();

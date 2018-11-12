@@ -76,7 +76,7 @@ namespace GetWebPageDate.Http
                     request.Method = "POST";
                     request.KeepAlive = true;
                     request.Referer = null;
-                    request.AllowAutoRedirect = true;
+                    request.AllowAutoRedirect = false;
                     request.UserAgent = "Mozilla/4.0 (compatible; MSIE 7.0; Windows NT 5.2; .NET CLR 1.1.4322; .NET CLR 2.0.50727)";
                     request.Accept = "*/*";
                     //request.Host = "admin.tkyfw.com";
@@ -132,18 +132,28 @@ namespace GetWebPageDate.Http
 
                         request.ContentLength = postData.Length;
 
-                        System.IO.Stream outputStream = request.GetRequestStream();
-
-                        outputStream.Write(postData, 0, postData.Length);
-                        outputStream.Close();
+                        using (Stream outputStream = request.GetRequestStream())
+                        {
+                            outputStream.Write(postData, 0, postData.Length);
+                        }
                     }
-                    HttpWebResponse response = request.GetResponse() as HttpWebResponse;
-                    Stream responseStream = response.GetResponseStream();
-                    StreamReader reader = new System.IO.StreamReader(responseStream, encoding == null ? Encoding.UTF8 : encoding);
-                    string content = reader.ReadToEnd();
-                    reUri = response.ResponseUri.AbsoluteUri;
-                    response.Close();
-                    request.Abort();
+                    string content;
+                    using (HttpWebResponse response = request.GetResponse() as HttpWebResponse)
+                    {
+                        StreamReader reader;
+                        
+                        Stream responseStream = response.GetResponseStream();
+
+                        reader = new System.IO.StreamReader(responseStream, encoding == null ? Encoding.UTF8 : encoding);
+
+                        content = reader.ReadToEnd();
+                        reUri = response.ResponseUri.AbsoluteUri;
+                        responseStream.Dispose();
+                        response.Dispose();
+                        request.Abort();
+                    }
+
+
                     return content;
                 }
                 catch (Exception ex)
@@ -156,7 +166,7 @@ namespace GetWebPageDate.Http
                         sleepTime = 30 * 1000;
                     }
                     Thread.Sleep(sleepTime);
-                    if (ex.ToString().Contains("404") || ex.ToString().Contains("指定的值含有无效的控制字符") || ex.ToString().Contains("(500)"))
+                    if (ex.ToString().Contains("404") || ex.ToString().Contains("指定的值含有无效的控制字符") || ex.ToString().Contains("(500)") || ex.ToString().Contains("无法处理从 HTTP/HTTPS 协议到其他不同协议的重定向"))
                     {
                         return null;
                     }
@@ -273,7 +283,14 @@ namespace GetWebPageDate.Http
                     {
                         if (!url.StartsWith("://", StringComparison.OrdinalIgnoreCase))
                         {
-                            url = "http://" + url;
+                            if (url.StartsWith("//", StringComparison.OrdinalIgnoreCase))
+                            {
+                                url = "http:" + url;
+                            }
+                            else
+                            {
+                                url = "http://" + url;
+                            }
                         }
                         else
                         {

@@ -167,7 +167,7 @@ namespace GetWebPageDate.Util
 
             if (connection != null)
             {
-                connection.Close();
+                connection.Dispose();
             }
 
             return true;

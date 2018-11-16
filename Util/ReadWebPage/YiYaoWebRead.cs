@@ -44,9 +44,21 @@ namespace GetWebPageDate.Util.ReadWebPage
 
         private string username;
 
+        private List<string> testId = new List<string>() { "国药准字Z20053216", "国药准字H20031277", "国药准字Z20025588", "国药准字Z51021084", "国药准字Z20043397", "国药准字Z20025697" };
+
         public YiYaoWebRead()
         {
             username = ConfigurationManager.AppSettings["yyU"];
+        }
+
+        /// <summary>
+        /// 是否在测试列表中
+        /// </summary>
+        /// <param name="id"></param>
+        /// <returns></returns>
+        private bool IsInTest(string id)
+        {
+            return testId.Contains(id);
         }
 
         /// <summary>
@@ -264,6 +276,8 @@ namespace GetWebPageDate.Util.ReadWebPage
 
         public override void Start()
         {
+            bool isTest = true;
+
             Login();
 
             Dictionary<string, BaseItemInfo> yfHistoryItems = ReadHistoryItems();
@@ -303,6 +317,10 @@ namespace GetWebPageDate.Util.ReadWebPage
                 {
                     Console.WriteLine("{0} up and sync item totalCount:{1} curCount:{2}", DateTime.Now, yfSellingItems.Count, ++count);
                     BaseItemInfo yfItem = value.Value;
+                    //if (IsInTest(yfItem.ID))
+                    //{
+
+                    //}
                     //是否在售
                     bool isSelling = false;
                     foreach (BaseItemInfo item in yySellingItems.Values)
@@ -362,20 +380,26 @@ namespace GetWebPageDate.Util.ReadWebPage
                                 //重新上架 TODO
                                 isInStorehouse = true;
                                 item.Inventory = yfItem.Inventory;
-                                UpItem(item);
-                                UpdatePirceAndQuantity(item.ViewCount, "100", "103", yfItem.Inventory);
-                                CommonFun.WriteCSV(fileName + "upItem" + ticks + fileExtendName, item);
+                                if (!isTest)
+                                {
+                                    if (UpItem(item))
+                                    {
+                                        UpdatePirceAndQuantity(item.ViewCount, "100", "103", yfItem.Inventory);
 
-                                if (yfHistoryItems.ContainsKey(value.Key))
-                                {
-                                    yfHistoryItems[value.Key].Inventory = yfItem.Inventory;
-                                    UpdateHistoryStock(yfHistoryItems[value.Key]);
+                                        if (yfHistoryItems.ContainsKey(value.Key))
+                                        {
+                                            yfHistoryItems[value.Key].Inventory = yfItem.Inventory;
+                                            UpdateHistoryStock(yfHistoryItems[value.Key]);
+                                        }
+                                        else
+                                        {
+                                            yfHistoryItems.Add(value.Key, yfItem);
+                                            AddHistoryStock(yfItem);
+                                        }
+                                    }
                                 }
-                                else
-                                {
-                                    yfHistoryItems.Add(value.Key, yfItem);
-                                    AddHistoryStock(yfItem);
-                                }
+
+                                CommonFun.WriteCSV(fileName + "upItem" + ticks + fileExtendName, item);
 
                                 break;
                             }
@@ -419,7 +443,7 @@ namespace GetWebPageDate.Util.ReadWebPage
                 }
             }
 
-            Console.WriteLine("{0} Finshed.....................", DateTime.Now);
+             Console.WriteLine("{0} Finshed.....................", DateTime.Now);
             //ReadAllMenuURL();
 
             //GetWinItem();
@@ -497,7 +521,7 @@ namespace GetWebPageDate.Util.ReadWebPage
             {
                 return true;
             }
-
+            item.Remark = result;
             return false;
         }
 
@@ -516,6 +540,7 @@ namespace GetWebPageDate.Util.ReadWebPage
             {
                 return true;
             }
+            item.Remark = result;
             return false;
         }
         public void UpdatePrice()
@@ -535,7 +560,7 @@ namespace GetWebPageDate.Util.ReadWebPage
                 ticks = DateTime.Now.Ticks;
                 try
                 {
-                    if ((DateTime.Now - startDate).Minutes > 10)
+                    if (startDate == DateTime.MinValue || (DateTime.Now - startDate).Minutes > 10)
                     {
                         startDate = DateTime.Now;
                         //获取在售列表
@@ -549,7 +574,7 @@ namespace GetWebPageDate.Util.ReadWebPage
 
                             for (int i = 0; i < 2; i++)
                             {
-                                BaseItemInfo sItem = GetYiYaoMinPriceItem((ItemInfo)item, false, i == 1);
+                                BaseItemInfo sItem = GetYiYaoMinPriceItem((ItemInfo)item, false, i == 1, false);
 
                                 if (sItem != null)
                                 {
@@ -1240,71 +1265,84 @@ namespace GetWebPageDate.Util.ReadWebPage
             return brandId;
         }
 
+        private string GetFormat(string content)
+        {
+            content = content.Replace(" ", "");
+            content = content.Replace('S', '粒');
+            content = content.Replace('s', '粒');
+            content = content.Replace("毫克", "mg");
+            content = content.Replace("x", "*");
+            content = content.Replace("×", "*");
+            content = content.Replace("(", "");
+            content = content.Replace("（", "");
+            content = content.Replace("）", "");
+            content = content.Replace(")", "");
+            return content;
+        }
+
         /// <summary>
         /// 获取最低物品
         /// </summary>
         /// <param name="name"></param>
         /// <returns></returns>
-        public ItemInfo GetYiYaoMinPriceItem(ItemInfo toItem, bool isUseName = true, bool isUseOldFun = false)
+        public ItemInfo GetYiYaoMinPriceItem(ItemInfo toItem, bool isUseName = true, bool isUseOldFun = false, bool isUseBrand = true)
         {
             try
             {
-                bool isSpc = IsInSpcTypeList(toItem.Use);
+                int page = 1;
+                int totalPage = 0;
 
-                string seachName = toItem.Name;//isUseName ? toItem.Name : toItem.ItemName;
-
-                string itemName = HttpUtility.UrlEncode(seachName, Encoding.GetEncoding("utf-8")).ToUpper();
-                itemName = HttpUtility.UrlEncode(itemName, Encoding.GetEncoding("utf-8")).ToUpper();
-                //string url = "http://www.111.com.cn/search/redirect.action?callback=jQuery18307865958759267715_1520474525375";
-                //string sPostData = string.Format("platform=1&keyword={0}", HttpUtility.UrlEncode(toItem.Name, Encoding.GetEncoding("utf-8")).ToUpper());
-                //string reUri = "";
-                //string content = request.HttpPost(url, sPostData, ref reUri);
-
-                string sUrl = string.Format("http://www.111.com.cn/search/search.action?keyWord={0}", itemName);
-
-                string urlPage = "http://www.111.com.cn/search/search.action?keyWord={0}&sort=50&gotoPage={1}&rqstMode=asynchronous&t=0.8157034667475365&_=1520481340048";
-
-                string cUrl = "http://www.111.com.cn/interfaces/series.action";
-
-                string content = request.HttpGet(sUrl, Encoding.GetEncoding("gb2312"));
-
-                string brandFilter = GetBrandFilter(content, toItem.BrandName);
-
-                string sBrandUrl = "http://www.111.com.cn/search/search.action?keyWord={0}&brandFilter={1}&sort=50&gotoPage={2}&rqstMode=asynchronous&t=0.9971701451027082&_=1521252418092";
-
-                content = request.HttpGet(string.Format(sBrandUrl, itemName, brandFilter, 1), Encoding.GetEncoding("gb2312"));
-
-                string pageStr = CommonFun.GetValue(content, "<span class=\"pageOp\">共", "页");
-
-                int page = 0;
-
-                if (string.IsNullOrEmpty(pageStr))
+                do
                 {
-                    brandFilter = GetBrandFilter(content, "其他");
-                    content = request.HttpGet(string.Format(sBrandUrl, itemName, brandFilter, 1), Encoding.GetEncoding("gb2312"));
-                    pageStr = CommonFun.GetValue(content, "<span class=\"pageOp\">共", "页");
-                }
+                    bool isSpc = IsInSpcTypeList(toItem.Use);
 
-                bool is_brand = true;
-                if (string.IsNullOrEmpty(pageStr))
-                {
-                    content = request.HttpGet(string.Format(urlPage, itemName, 1), Encoding.GetEncoding("gb2312"));
-                    pageStr = CommonFun.GetValue(content, "<span class=\"pageOp\">共", "页");
-                    is_brand = false;
-                }
+                    string seachName = toItem.Name;//isUseName ? toItem.Name : toItem.ItemName;
 
-                if (string.IsNullOrEmpty(pageStr))
-                {
-                    return null;
-                }
+                    string itemName = HttpUtility.UrlEncode(seachName, Encoding.GetEncoding("utf-8")).ToUpper();
+                    itemName = HttpUtility.UrlEncode(itemName, Encoding.GetEncoding("utf-8")).ToUpper();
+                    itemName += CommonFun.GetUrlEncode(toItem.Format, false);
+                    string cUrl = "http://www.111.com.cn/interfaces/series.action";
 
-                page = Convert.ToInt32(pageStr);
-                page = page > 10 ? 10 : page;
-                for (int i = 1; i <= page; i++)
-                {
-                    string qUrl = is_brand ? string.Format(sBrandUrl, itemName, brandFilter, i) : string.Format(urlPage, itemName, i);
+                    string sUrl = "http://www.111.com.cn/search/search.action?keyWord={0}&&sort=50&gotoPage={1}&rqstMode=asynchronous&t=0.9971701451027082&_=1521252418092";
 
-                    content = request.HttpGet(qUrl, Encoding.GetEncoding("gb2312"));
+                    string brandFilter = "";
+
+                    string pageStr = "";
+
+                    string content = "";
+
+                    string paramBrandFilter = "&brandFilter={0}";
+
+                    if (isUseBrand && totalPage == 0)
+                    {
+                        string bContent = request.HttpGet(string.Format(sUrl, itemName, page), Encoding.GetEncoding("gb2312"));
+
+                        brandFilter = GetBrandFilter(bContent, toItem.BrandName);
+
+                        pageStr = CommonFun.GetValue(bContent, "<span class=\"pageOp\">共", "页");
+
+                        if (string.IsNullOrEmpty(pageStr))
+                        {
+                            brandFilter = GetBrandFilter(bContent, "其他");
+                            bContent = request.HttpGet(string.Format(sUrl, itemName, brandFilter, 1), Encoding.GetEncoding("gb2312"));
+                            pageStr = CommonFun.GetValue(brandFilter, "<span class=\"pageOp\">共", "页");
+                        }
+                    }
+
+                    if (string.IsNullOrEmpty(pageStr))
+                    {
+                        brandFilter = "";
+                        content = request.HttpGet(string.Format(sUrl, itemName, page), Encoding.GetEncoding("gb2312"));
+                        pageStr = CommonFun.GetValue(content, "<span class=\"pageOp\">共", "页");
+                        totalPage = string.IsNullOrEmpty(pageStr) ? 0 : Convert.ToInt32(pageStr);
+                    }
+                    else
+                    {
+                        string qUrl = string.Format(sUrl, itemName, brandFilter, page);
+                        qUrl += (string.IsNullOrEmpty(brandFilter) ? "" : string.Format(paramBrandFilter, brandFilter));
+                        content = request.HttpGet(qUrl, Encoding.GetEncoding("gb2312"));
+                    }
+
 
                     List<string> urls = isUseOldFun ? GetOnePageSeachItemUrls(content) : GetOnePageSeachItemUrls(content, toItem.ItemName);
 
@@ -1349,29 +1387,13 @@ namespace GetWebPageDate.Util.ReadWebPage
                                 {
                                     ItemInfo item = GetOneItem(itemInfoStr);
 
-                                    string mformat = toItem.Format.Replace('s', '粒');
-                                    mformat = mformat.Replace('S', '粒');
-                                    mformat = mformat.Replace("毫克", "mg");
-                                    mformat = mformat.Replace("x", "*");
-                                    mformat = mformat.Replace("×", "*");
+                                    string mformat = GetFormat(toItem.Format);
 
-                                    string pformat = item.Format.Replace('s', '粒');
-                                    pformat = pformat.Replace('S', '粒');
-                                    pformat = pformat.Replace("毫克", "mg");
-                                    pformat = pformat.Replace("x", "*");
-                                    pformat = pformat.Replace("×", "*");
+                                    string pformat = GetFormat(item.Format);
 
-                                    string mItemNam = toItem.ItemName.Replace('s', '粒');
-                                    mItemNam = mItemNam.Replace('S', '粒');
-                                    mItemNam = mItemNam.Replace("毫克", "mg");
-                                    mItemNam = mItemNam.Replace("x", "*");
-                                    mItemNam = mItemNam.Replace("×", "*");
+                                    string mItemNam = GetFormat(toItem.ItemName);
 
-                                    string pItemNam = item.ItemName.Replace('s', '粒');
-                                    pItemNam = pItemNam.Replace('S', '粒');
-                                    pItemNam = pItemNam.Replace("毫克", "mg");
-                                    pItemNam = pItemNam.Replace("x", "*");
-                                    pItemNam = pItemNam.Replace("×", "*");
+                                    string pItemNam = GetFormat(item.ItemName);
 
                                     if (isUseName)
                                     {
@@ -1387,21 +1409,15 @@ namespace GetWebPageDate.Util.ReadWebPage
                                     {
                                         if (resItem == null || (resItem.ShopPrice > item.ShopPrice && item.ShopPrice > 0))
                                         {
-                                            string toItemName = toItem.ItemName.Replace(" ", "");
-                                            toItemName = toItemName.Replace('s', '粒');
-                                            toItemName = toItemName.Replace('S', '粒');
-                                            toItemName = toItemName.Replace("毫克", "mg");
-                                            toItemName = toItemName.Replace("x", "*");
-                                            toItemName = toItemName.Replace("×", "*");
+                                            string toItemName = GetFormat(toItem.ItemName);
 
-                                            string gItemName = item.ItemName.Replace(" ", "");
-                                            gItemName = gItemName.Replace('s', '粒');
-                                            gItemName = gItemName.Replace('S', '粒');
-                                            gItemName = gItemName.Replace("毫克", "mg");
-                                            gItemName = gItemName.Replace("x", "*");
-                                            gItemName = gItemName.Replace("×", "*");
+                                            string gItemName = GetFormat(item.ItemName);
 
-                                            if (toItemName == gItemName)
+                                            toItemName = CommonFun.GetNum(toItemName);
+
+                                            gItemName = CommonFun.GetNum(gItemName);
+
+                                            if (CommonFun.GetNum(item.ID) == CommonFun.GetNum(toItem.ID) && toItemName == gItemName)
                                             {
                                                 resItem = item;
                                             }
@@ -1409,14 +1425,177 @@ namespace GetWebPageDate.Util.ReadWebPage
                                     }
                                 }
                             }
+                            if (resItem != null)
+                            {
+                                return resItem;
+                            }
                         }
                     }
+                } while (++page <= totalPage);
 
-                    if (resItem != null)
-                    {
-                        return resItem;
-                    }
-                }
+
+
+                //string sUrl = string.Format("http://www.111.com.cn/search/search.action?keyWord={0}", itemName);
+
+                //string urlPage = "http://www.111.com.cn/search/search.action?keyWord={0}&sort=50&gotoPage={1}&rqstMode=asynchronous&t=0.8157034667475365&_=1520481340048";
+
+                ////string cUrl = "http://www.111.com.cn/interfaces/series.action";
+
+
+
+
+
+
+                //string brandFilter = GetBrandFilter(content, toItem.BrandName);
+
+                //string sBrandUrl = "http://www.111.com.cn/search/search.action?keyWord={0}&brandFilter={1}&sort=50&gotoPage={2}&rqstMode=asynchronous&t=0.9971701451027082&_=1521252418092";
+
+                //content = request.HttpGet(string.Format(sBrandUrl, itemName, brandFilter, 1), Encoding.GetEncoding("gb2312"));
+
+                //string pageStr = CommonFun.GetValue(content, "<span class=\"pageOp\">共", "页");
+
+                //int page = 0;
+
+                //if (string.IsNullOrEmpty(pageStr))
+                //{
+                //    brandFilter = GetBrandFilter(content, "其他");
+                //    content = request.HttpGet(string.Format(sBrandUrl, itemName, brandFilter, 1), Encoding.GetEncoding("gb2312"));
+                //    pageStr = CommonFun.GetValue(content, "<span class=\"pageOp\">共", "页");
+                //}
+
+                //bool is_brand = true;
+                //if (string.IsNullOrEmpty(pageStr))
+                //{
+                //    content = request.HttpGet(string.Format(urlPage, itemName, 1), Encoding.GetEncoding("gb2312"));
+                //    pageStr = CommonFun.GetValue(content, "<span class=\"pageOp\">共", "页");
+                //    is_brand = false;
+                //}
+
+                //if (string.IsNullOrEmpty(pageStr))
+                //{
+                //    return null;
+                //}
+
+
+                //page = Convert.ToInt32(pageStr);
+                //page = page > 10 ? 10 : page;
+                //for (int i = 1; i <= page; i++)
+                //{
+                //    string qUrl = is_brand ? string.Format(sBrandUrl, itemName, brandFilter, i) : string.Format(urlPage, itemName, i);
+
+                //    content = request.HttpGet(qUrl, Encoding.GetEncoding("gb2312"));
+
+                //    List<string> urls = isUseOldFun ? GetOnePageSeachItemUrls(content) : GetOnePageSeachItemUrls(content, toItem.ItemName);
+
+                //    RequestInfo info = new RequestInfo();
+                //    info.Urls = urls;
+                //    info.RequestParams.Add("requestType", "get");
+                //    info.RequestParams.Add("encoding", "gb2312");
+
+                //    RequestUrls(info);
+
+                //    ItemInfo resItem = null;
+
+                //    foreach (string itemInfoStr in info.Contentes)
+                //    {
+                //        //string itemInfoStr = request.HttpGet(url, Encoding.GetEncoding("gb2312"));
+
+                //        string sellNameInfo = CommonFun.GetValue(itemInfoStr, "<div class=\"right_property\">", "</div>");
+
+                //        sellNameInfo = CommonFun.GetValue(itemInfoStr, "<h3>", "</h3>");
+
+                //        if (!string.IsNullOrEmpty(sellNameInfo) && sellNameInfo != name)
+                //        {
+                //            //int count = 50;
+
+                //            //if (toItem.Use != titleName)
+                //            //{
+                //            string itemId = CommonFun.GetValue(itemInfoStr, "itemid=\"", "\"");
+                //            string pno = CommonFun.GetValue(itemInfoStr, "item_pno = '", "'");
+                //            string provinceId = "20";
+                //            string postData = string.Format("itemid={0}&pno={1}&provinceId={2}", itemId, pno, provinceId);
+                //            string countInfo = request.HttpGet(cUrl + "?" + postData);
+                //            //string countInfo = request.HttpPost(cUrl, postData);
+                //            countInfo = CommonFun.GetValue(countInfo, "\\[\"", "\"");
+                //            string[] arrCountInfo = countInfo.Split('_');
+                //            int count = Convert.ToInt32(arrCountInfo[2]);
+                //            //}
+
+                //            if (count > 0)
+                //            {
+                //                if (isSpc || count > minStock)
+                //                //if (toItem.Use != titleName && count > 10)
+                //                {
+                //                    ItemInfo item = GetOneItem(itemInfoStr);
+
+                //                    string mformat = toItem.Format.Replace('s', '粒');
+                //                    mformat = mformat.Replace('S', '粒');
+                //                    mformat = mformat.Replace("毫克", "mg");
+                //                    mformat = mformat.Replace("x", "*");
+                //                    mformat = mformat.Replace("×", "*");
+
+                //                    string pformat = item.Format.Replace('s', '粒');
+                //                    pformat = pformat.Replace('S', '粒');
+                //                    pformat = pformat.Replace("毫克", "mg");
+                //                    pformat = pformat.Replace("x", "*");
+                //                    pformat = pformat.Replace("×", "*");
+
+                //                    string mItemNam = toItem.ItemName.Replace('s', '粒');
+                //                    mItemNam = mItemNam.Replace('S', '粒');
+                //                    mItemNam = mItemNam.Replace("毫克", "mg");
+                //                    mItemNam = mItemNam.Replace("x", "*");
+                //                    mItemNam = mItemNam.Replace("×", "*");
+
+                //                    string pItemNam = item.ItemName.Replace('s', '粒');
+                //                    pItemNam = pItemNam.Replace('S', '粒');
+                //                    pItemNam = pItemNam.Replace("毫克", "mg");
+                //                    pItemNam = pItemNam.Replace("x", "*");
+                //                    pItemNam = pItemNam.Replace("×", "*");
+
+                //                    if (isUseName)
+                //                    {
+                //                        if (CommonFun.GetNum(item.ID) == CommonFun.GetNum(toItem.ID) && mformat == pformat && item.Created == toItem.Created && mItemNam == pItemNam)
+                //                        {
+                //                            if (resItem == null || (resItem.ShopPrice > item.ShopPrice && item.ShopPrice > 0))
+                //                            {
+                //                                resItem = item;
+                //                            }
+                //                        }
+                //                    }
+                //                    else
+                //                    {
+                //                        if (resItem == null || (resItem.ShopPrice > item.ShopPrice && item.ShopPrice > 0))
+                //                        {
+                //                            string toItemName = toItem.ItemName.Replace(" ", "");
+                //                            toItemName = toItemName.Replace('s', '粒');
+                //                            toItemName = toItemName.Replace('S', '粒');
+                //                            toItemName = toItemName.Replace("毫克", "mg");
+                //                            toItemName = toItemName.Replace("x", "*");
+                //                            toItemName = toItemName.Replace("×", "*");
+
+                //                            string gItemName = item.ItemName.Replace(" ", "");
+                //                            gItemName = gItemName.Replace('s', '粒');
+                //                            gItemName = gItemName.Replace('S', '粒');
+                //                            gItemName = gItemName.Replace("毫克", "mg");
+                //                            gItemName = gItemName.Replace("x", "*");
+                //                            gItemName = gItemName.Replace("×", "*");
+
+                //                            if (toItemName == gItemName)
+                //                            {
+                //                                resItem = item;
+                //                            }
+                //                        }
+                //                    }
+                //                }
+                //            }
+                //        }
+                //    }
+
+                //    if (resItem != null)
+                //    {
+                //        return resItem;
+                //    }
+                //}
             }
             catch (Exception ex)
             {
@@ -1446,23 +1625,13 @@ namespace GetWebPageDate.Util.ReadWebPage
                     //string[] mArray = brandName.Split(' ');
                     //if (nArray[0] == mArray[0])
                     //{
-                    string sItemName = nMs[0].Value.Trim();
-                    sItemName = sItemName.Replace(" ", "");
-                    sItemName = sItemName.Replace('S', '粒');
-                    sItemName = sItemName.Replace('s', '粒');
-                    sItemName = sItemName.Replace("毫克", "mg");
-                    sItemName = sItemName.Replace("x", "*");
-                    sItemName = sItemName.Replace("×", "*");
-                    string rItemName = itemName.Replace(" ", "");
-                    rItemName = rItemName.Replace('S', '粒');
-                    rItemName = rItemName.Replace('s', '粒');
-                    rItemName = rItemName.Replace("毫克", "mg");
-                    rItemName = rItemName.Replace("x", "*");
-                    rItemName = rItemName.Replace("×", "*");
-                    if (sItemName.Contains(rItemName) || rItemName.Contains(sItemName))
-                    {
-                        urls.Add("http:" + CommonFun.GetValue(pMs[0].Value, "\" href=\"", "\""));
-                    }
+                    //string sItemName = GetFormat(nMs[0].Value.Trim());
+                    //string rItemName = GetFormat(itemName);
+
+                    //if (sItemName.Contains(rItemName) || rItemName.Contains(sItemName))
+                    //{
+                    urls.Add("http:" + CommonFun.GetValue(pMs[0].Value, "\" href=\"", "\""));
+                    //}
 
                     //}
 
@@ -1910,7 +2079,7 @@ namespace GetWebPageDate.Util.ReadWebPage
             if (!string.IsNullOrEmpty(originalPrice))
             {
                 string url = string.Format("http://popadmin.111.com.cn/admin/itemlist/updateOriginalPrice.action?itemCondition.originalPrice={0}&itemCondition.popItemId={1}", originalPrice, popItemId);
-                request.HttpGet(url);
+                string content = request.HttpGet(url);
             }
 
             if (!string.IsNullOrEmpty(recommendPrice))

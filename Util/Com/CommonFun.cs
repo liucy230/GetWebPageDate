@@ -484,8 +484,20 @@ namespace GetWebPageDate.Util
                     decimal format = 1;
                     foreach (string value in values)
                     {
-                        string num = CommonFun.GetNum(value);
-                        format *= (string.IsNullOrEmpty(num) ? 1 : Convert.ToDecimal(num));
+                        if(value.Contains(":"))
+                        {
+                            string[] sValues = value.Split(':');
+                            foreach(string sValue in sValues)
+                            {
+                                string num = CommonFun.GetNum(sValue);
+                                format *= (string.IsNullOrEmpty(num) ? 1 : Convert.ToDecimal(num));
+                            }
+                        }
+                        else
+                        {
+                            string num = CommonFun.GetNum(value);
+                            format *= (string.IsNullOrEmpty(num) ? 1 : Convert.ToDecimal(num));
+                        }
                     }
                     string info = Regex.Replace(values[0], @"[\d.\d]", "");
                     if (string.IsNullOrEmpty(info) && !string.IsNullOrEmpty(values[1]))
@@ -502,8 +514,20 @@ namespace GetWebPageDate.Util
                     decimal format = 1;
                     foreach (string value in values)
                     {
-                        string num = CommonFun.GetNum(value);
-                        format *= (string.IsNullOrEmpty(num) ? 1 : Convert.ToDecimal(num));
+                        if (value.Contains(":"))
+                        {
+                            string[] sValues = value.Split(':');
+                            foreach (string sValue in sValues)
+                            {
+                                string num = CommonFun.GetNum(sValue);
+                                format *= (string.IsNullOrEmpty(num) ? 1 : Convert.ToDecimal(num));
+                            }
+                        }
+                        else
+                        {
+                            string num = CommonFun.GetNum(value);
+                            format *= (string.IsNullOrEmpty(num) ? 1 : Convert.ToDecimal(num));
+                        }
                     }
                     string info = Regex.Replace(values[0], @"[\d.\d]", "");
                     array2[0] = format + info;
@@ -859,89 +883,19 @@ namespace GetWebPageDate.Util
                     }
 
                     format = format.Substring(0, format.LastIndexOf('x'));
-
-
                 }
 
                 if (format.Contains("片") && format.Contains("板"))
                 {
                     return SumFormat(format, "片", "板");
-                    //string[] array1 = format.Split('/');
-
-                    //if (array1.Length == 2)
-                    //{
-                    //    string[] array = array1[0].Split('x');
-                    //    if (array.Length == 3)
-                    //    {
-                    //        decimal value = Convert.ToDecimal(CommonFun.GetNum(array[1])) * Convert.ToDecimal(CommonFun.GetNum(array[2]));
-
-                    //        return array[0] + "x" + value + "片/" + array1[array1.Length - 1];
-                    //    }
-                    //}
-                    //else
-                    //{
-                    //    string[] array = format.Split('x');
-                    //    if (array.Length == 3)
-                    //    {
-                    //        decimal value = Convert.ToDecimal(CommonFun.GetNum(array[1])) * Convert.ToDecimal(CommonFun.GetNum(array[2]));
-
-                    //        return array[0] + "x" + value + "片";
-                    //    }
-                    //}
-
                 }
                 else if (format.Contains("粒") && format.Contains("板"))
                 {
                     return SumFormat(format, "粒", "板");
-                    //string[] array1 = format.Split('/');
-
-                    //if (array1.Length == 2)
-                    //{
-                    //    string[] array = array1[0].Split('x');
-                    //    if (array.Length == 3)
-                    //    {
-                    //        decimal value = Convert.ToDecimal(CommonFun.GetNum(array[1])) * Convert.ToDecimal(CommonFun.GetNum(array[2]));
-
-                    //        return array[0] + "x" + value + "粒/" + array1[1];
-                    //    }
-                    //}
-                    //else
-                    //{
-                    //    string[] array = format.Split('x');
-                    //    if (array.Length == 3)
-                    //    {
-                    //        decimal value = Convert.ToDecimal(CommonFun.GetNum(array[1])) * Convert.ToDecimal(CommonFun.GetNum(array[2]));
-
-                    //        return array[0] + "x" + value + "粒";
-                    //    }
-                    //}
                 }
                 else if (format.Contains("粒") && format.Contains("瓶"))
                 {
                     return SumFormat(format, "粒", "瓶");
-                    //string[] array1 = format.Split('/');
-
-                    //if (array1.Length == 2)
-                    //{
-                    //    string[] array = array1[0].Split('x');
-
-                    //    if (array.Length == 3)
-                    //    {
-                    //        decimal value = Convert.ToDecimal(CommonFun.GetNum(array[1])) * Convert.ToDecimal(CommonFun.GetNum(array[2]));
-
-                    //        return array[0] + "x" + value + "粒/" + array1[1];
-                    //    }
-                    //}
-                    //else
-                    //{
-                    //    string[] array = format.Split('x');
-                    //    if (array.Length == 3)
-                    //    {
-                    //        decimal value = Convert.ToDecimal(CommonFun.GetNum(array[1])) * Convert.ToDecimal(CommonFun.GetNum(array[2]));
-
-                    //        return array[0] + "x" + value + "粒";
-                    //    }
-                    //}
                 }
                 else if (format.Contains("片") && format.Contains("瓶"))
                 {

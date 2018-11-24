@@ -466,6 +466,96 @@ namespace GetWebPageDate.Util
         //    return Regex.Replace(value, @"[\d.\d]", "");
         //}
 
+        public static double GetFormatValue(string format)
+        {
+            double result = 0;
+
+            try
+            {
+                format = format.Replace("毫克", "mg");
+                format = format.Replace('克', 'g');
+                format = format.Replace('G', 'g');
+                format = format.Replace('*', 'x');
+                format = format.Replace('×', 'x');
+                format = format.Replace('：', ':');
+                format = format.Replace('∶', ':');
+                format = format.Replace("..", ".");
+                format = format.Replace("毫升", "ml");
+
+                List<string> valueList = new List<string>();
+
+                string[] aFormat = format.Split('/');
+
+                foreach (string iformat in aFormat)
+                {
+                    if (iformat.Contains('x'))
+                    {
+                        string[] aFormat1 = iformat.Split('x');
+
+                        foreach (string iformat1 in aFormat1)
+                        {
+                            if (iformat1.Contains(':'))
+                            {
+                                valueList.AddRange(iformat1.Split(':'));
+                            }
+                            else
+                            {
+                                valueList.Add(iformat1);
+                            }
+                        }
+                    }
+                    else
+                    {
+                        valueList.Add(iformat);
+                    }
+                }
+
+                foreach (string value in valueList)
+                {
+                    string numStr = CommonFun.GetNum(value);
+                    double num = string.IsNullOrEmpty(numStr) ? 1 : Convert.ToDouble(numStr);
+
+                    if (result == 0)
+                    {
+                        result = num * 100000;
+                    }
+                    else
+                    {
+                        result *= num;
+                    }
+                }
+
+                if (format.Contains("mg"))
+                {
+                    result /= 1000;
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex);
+            }
+
+            return result;
+        }
+
+        public static bool IsSameFormat(string format1, string format2)
+        {
+            try
+            {
+                double value1 = GetFormatValue(format1);
+                double value2 = GetFormatValue(format2);
+                if (value1 != 0 && value1 == value2)
+                {
+                    return true;
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex);
+            }
+            return false;
+        }
+
         public static bool IsSameFormat(string format1, string format2, string name1, string name2)
         {
             string pFormat = FormatStr(format1, name1);
@@ -484,10 +574,10 @@ namespace GetWebPageDate.Util
                     decimal format = 1;
                     foreach (string value in values)
                     {
-                        if(value.Contains(":"))
+                        if (value.Contains(":"))
                         {
                             string[] sValues = value.Split(':');
-                            foreach(string sValue in sValues)
+                            foreach (string sValue in sValues)
                             {
                                 string num = CommonFun.GetNum(sValue);
                                 format *= (string.IsNullOrEmpty(num) ? 1 : Convert.ToDecimal(num));

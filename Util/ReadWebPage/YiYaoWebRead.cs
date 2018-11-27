@@ -302,7 +302,7 @@ namespace GetWebPageDate.Util.ReadWebPage
                 BaseItemInfo downItem = downValue.Value;
                 foreach (BaseItemInfo item in yySellingItems.Values)
                 {
-                    if (downItem.ID == item.ID && CommonFun.IsSameFormat(item.Format, downItem.Format))
+                    if (CommonFun.GetNum(downItem.ID) == CommonFun.GetNum(item.ID) && CommonFun.IsSameFormat(item.Format, downItem.Format))
                     {
                         DownItem(item);
                         CommonFun.WriteCSV(fileName + "down" + ticks + fileExtendName, item);
@@ -325,7 +325,7 @@ namespace GetWebPageDate.Util.ReadWebPage
                     bool isSelling = false;
                     foreach (BaseItemInfo item in yySellingItems.Values)
                     {
-                        if (item.ID == yfItem.ID && CommonFun.IsSameFormat(item.Format, yfItem.Format))
+                        if (CommonFun.GetNum(item.ID) == CommonFun.GetNum(yfItem.ID) && CommonFun.IsSameFormat(item.Format, yfItem.Format))
                         {
                             isSelling = true;
                             int historyCount = GetHistoryStock(value.Key, yfHistoryItems);
@@ -375,7 +375,7 @@ namespace GetWebPageDate.Util.ReadWebPage
 
                         foreach (BaseItemInfo item in yyStorehouseItems.Values)
                         {
-                            if (item.ID == yfItem.ID && CommonFun.IsSameFormat(item.Format, yfItem.Format))
+                            if (CommonFun.GetNum(item.ID) == CommonFun.GetNum(yfItem.ID) && CommonFun.IsSameFormat(item.Format, yfItem.Format))
                             {
                                 //重新上架 TODO
                                 isInStorehouse = true;
@@ -412,7 +412,7 @@ namespace GetWebPageDate.Util.ReadWebPage
 
                             foreach (BaseItemInfo item in yyReadyPublishItems.Values)
                             {
-                                if (item.ID == yfItem.ID && CommonFun.IsSameFormat(item.Format, yfItem.Format))
+                                if (CommonFun.GetNum(item.ID) == CommonFun.GetNum(yfItem.ID) && CommonFun.IsSameFormat(item.Format, yfItem.Format))
                                 {
                                     isInReadyPublish = true;
                                     CommonFun.WriteCSV(fileName + "publishItem" + ticks + fileExtendName, item);
@@ -577,13 +577,14 @@ namespace GetWebPageDate.Util.ReadWebPage
                             //}
 
                             Console.WriteLine("Update new.........{0},TotalCount:{1},CurCount:{2}", DateTime.Now, totalCount, ++curCount);
-
+                            bool isHave = false;
                             for (int i = 0; i < 2; i++)
                             {
                                 BaseItemInfo sItem = GetYiYaoMinPriceItem((ItemInfo)item, false, i == 1, false);
 
                                 if (sItem != null)
                                 {
+                                    isHave = true;
                                     decimal minPrice = sItem.ShopPrice - lPrice; //(sItem.ShopPrice - (decimal)0.1);
                                     //判断是否需要改价
                                     if (item.ShopPrice != minPrice)
@@ -599,9 +600,14 @@ namespace GetWebPageDate.Util.ReadWebPage
                                         {
                                             CommonFun.WriteCSV(fileName + "ToolowerPrice" + ticks + ".csv", item);
                                         }
-                                        break;
                                     }
+                                    break;
                                 }
+                            }
+
+                            if (!isHave)
+                            {
+                                CommonFun.WriteCSV(fileName + "NotFindOrOlny" + ticks + fileExtendName, item);
                             }
                         }
                         Console.WriteLine("{0} Finshed.......................", DateTime.Now.ToString());
@@ -1428,9 +1434,13 @@ namespace GetWebPageDate.Util.ReadWebPage
 
                                             gItemName = CommonFun.GetNum(gItemName);
 
-                                            if (CommonFun.GetNum(item.ID) == CommonFun.GetNum(toItem.ID) && toItemName == gItemName)
+                                            if (CommonFun.GetNum(item.ID) == CommonFun.GetNum(toItem.ID))
                                             {
-                                                resItem = item;
+                                                if (toItemName == gItemName || CommonFun.GetFormatValue(toItem.ItemName) == CommonFun.GetFormatValue(item.ItemName))
+                                                {
+                                                    resItem = item;
+                                                }
+
                                             }
                                         }
                                     }
@@ -2100,7 +2110,7 @@ namespace GetWebPageDate.Util.ReadWebPage
                     item.ShopPrice = Convert.ToDecimal(originalPrice);
                     item.Remark = content;
 
-                    string limitPriceStr = CommonFun.GetValue(content, "price:\"", ",");
+                    string limitPriceStr = CommonFun.GetValue(content, "price\":", ",");
                     if (!string.IsNullOrEmpty(limitPriceStr) && limitPriceStr.Trim() != oldOriginalPrice.Trim())
                     {
                         item.ViewCount = request.HttpGet(string.Format(url, limitPriceStr, popItemId));

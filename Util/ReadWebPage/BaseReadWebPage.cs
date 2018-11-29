@@ -293,23 +293,52 @@ namespace GetWebPageDate.Util
         /// <returns></returns>
         protected bool CanLoad(string name, string id)
         {
+            bool result = IsBlackId(id);
+
+            result = IsBlackId(id);
+
+            if (!result)
+            {
+                result = IsBlackName(name);
+            }
+
+            return !result;
+        }
+
+        /// <summary>
+        /// 国药号黑名单
+        /// </summary>
+        /// <param name="id"></param>
+        /// <returns></returns>
+        protected bool IsBlackId(string id)
+        {
             foreach (string idBlack in idBlackList)
             {
                 if (id.Contains(idBlack))
                 {
-                    return false;
+                    return true;
                 }
             }
 
+            return false;
+        }
+
+        /// <summary>
+        /// 药品黑名单
+        /// </summary>
+        /// <param name="name"></param>
+        /// <returns></returns>
+        protected bool IsBlackName(string name)
+        {
             foreach (string nuload in unloadList)
             {
                 if (name.Contains(nuload))
                 {
-                    return false;
+                    return true;
                 }
             }
 
-            return true;
+            return false;
         }
 
         /// <summary>

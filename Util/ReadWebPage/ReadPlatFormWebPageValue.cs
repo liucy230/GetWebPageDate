@@ -83,6 +83,7 @@ namespace GetWebPageDate.Util
                 senderPhoneNumber = infoArray[1];
             }
             selfName = ConfigurationManager.AppSettings["yfSelfName"];
+            fileName = "YF/";
         }
 
         public override void ReadAllMenuURL()
@@ -1554,6 +1555,14 @@ namespace GetWebPageDate.Util
                             int count = 0;
                             foreach (BaseItemInfo item in sItems.Values)
                             {
+                                //在黑名单中自动下架
+                                if (IsBlacklistStore(item.Created)|| IsBlackName(item.Name))
+                                {
+                                    DownItem(item);
+                                    Console.WriteLine("{0} In black list down name:{1} create:{2}", DateTime.Now, item.Name, item.Created);
+                                    CommonFun.WriteCSV(fileName + "BlackDown" + ticks + fileExtendName, item);
+                                    continue;
+                                }
                                 Console.WriteLine("{2} Updating totaoCount:{0} curCount:{1}", sItems.Count, ++count, DateTime.Now);
 
                                 //if (item.ID != "国药准字Z20080047")

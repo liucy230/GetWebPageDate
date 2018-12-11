@@ -1729,20 +1729,24 @@ namespace GetWebPageDate.Util
         /// 获取在售列表
         /// </summary>
         /// <returns></returns>
-        public Dictionary<string, BaseItemInfo> GetSellingItems()
+        public Dictionary<string, BaseItemInfo> GetSellingItems(bool isTest = false)
         {
-            //Dictionary<string, BaseItemInfo> items = new Dictionary<string, BaseItemInfo>();
-            //BaseItemInfo item = new BaseItemInfo();
-            //item.ID = "国药准字Z20025028";
-            //item.ViewCount = "2461435";
-            //item.Format = "0.4gx54粒/瓶";
-            //item.Name = "前列倍喜胶囊";
-            //item.Created = "贵州太和制药有限公司";
-            //item.Type = "2017";
-            //item.Inventory = "52";
-            //item.ItemName = "196329";
-            //items.Add("", item);
-            //return items;
+            if (isTest)
+            {
+                Dictionary<string, BaseItemInfo> items = new Dictionary<string, BaseItemInfo>();
+                BaseItemInfo item = new BaseItemInfo();
+                item.ID = "国药准字Z11020294";
+                item.ViewCount = "2461435";
+                item.Format = "0.25gx40片/瓶";
+                item.Name = "利肺片";
+                item.Created = "北京同仁堂科技发展股份有限公司制药厂";
+                item.Type = "2017";
+                item.Inventory = "52";
+                item.ItemName = "196329";
+                items.Add("", item);
+                return items;
+            }
+           
        
             return GetItemsByStatus(1);
         }

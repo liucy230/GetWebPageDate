@@ -538,6 +538,21 @@ namespace GetWebPageDate.Util
             return result;
         }
 
+        public static bool IsSameItem(string id1, string id2, string format1, string format2, string name1, string name2)
+        {
+            id1 = CommonFun.GetNum(id1);
+            id2 =  CommonFun.GetNum(id2);
+            if (id1.Contains(id2) || id2.Contains(id1))
+            {
+                if(IsSameFormat(format1, format2) || IsSameFormat(format1, format2, name1, name2))
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
         public static bool IsSameFormat(string format1, string format2)
         {
             try

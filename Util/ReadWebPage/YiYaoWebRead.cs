@@ -348,7 +348,7 @@ namespace GetWebPageDate.Util.ReadWebPage
 
                         ReadPlatFormWebPageValue yf = new ReadPlatFormWebPageValue();
                         yf.Login(2);
-                        Dictionary<string, BaseItemInfo> yfSellingItems = yf.GetSellingItems();
+                        Dictionary<string, BaseItemInfo> yfSellingItems = yf.GetSellingItems(isTest);
 
                         Dictionary<string, BaseItemInfo> yySellingItems = GetSellingItems();
 
@@ -381,7 +381,7 @@ namespace GetWebPageDate.Util.ReadWebPage
                             {
                                 Console.WriteLine("{0} up and sync item totalCount:{1} curCount:{2}", DateTime.Now, yfSellingItems.Count, ++count);
                                 BaseItemInfo yfItem = value.Value;
-                                if (IsInTest(yfItem.ID))
+                                if (isTest && IsInTest(yfItem.ID))
                                 {
 
                                 }
@@ -391,13 +391,14 @@ namespace GetWebPageDate.Util.ReadWebPage
                                 {
                                     if (CommonFun.IsSameItem(item.ID, yfItem.ID, item.Format, yfItem.Format, item.Name, yfItem.Name))
                                     {
+                                        isSelling = true;
                                         if(yfItem.Inventory == "0")
                                         {
                                             DownItem(item);
                                             CommonFun.WriteCSV(fileName + "zeroStockDown" + ticks + fileExtendName, item);
                                             continue;
                                         }
-                                        isSelling = true;
+
                                         int historyCount = GetHistoryStock(value.Key, yfHistoryItems);
                                         //TODO 同步库存
                                         if (historyCount != int.MinValue)
@@ -412,7 +413,8 @@ namespace GetWebPageDate.Util.ReadWebPage
                                             {
                                                 historyCount -= diff;
                                                 string historyCountStr = historyCount.ToString();
-                                                UpdateStock(item.ViewCount, historyCountStr);
+                                                //UpdateStock(item.ViewCount, historyCountStr);
+                                                UpdatePirceAndQuantity(item.ViewCount, null, null, historyCountStr);
                                                 yfHistoryItems[value.Key].Inventory = historyCountStr;
                                                 UpdateHistoryStock(yfHistoryItems[value.Key]);
                                                 item.Inventory = historyCountStr;
@@ -430,7 +432,8 @@ namespace GetWebPageDate.Util.ReadWebPage
                                             Console.WriteLine("sync stock key;{0} stock:{1}...........", value.Key, yfItem.Inventory);
                                             CommonFun.WriteCSV(fileName + "sync_stock" + ticks + fileExtendName, yfItem);
                                             yfHistoryItems.Add(value.Key, yfItem);
-                                            UpdateStock(item.ViewCount, yfItem.Inventory);
+                                            UpdatePirceAndQuantity(item.ViewCount, null, null, yfItem.Inventory);
+                                            //UpdateStock(item.ViewCount, yfItem.Inventory);
                                             AddHistoryStock(yfItem);
                                         }
 

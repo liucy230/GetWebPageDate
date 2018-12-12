@@ -1735,13 +1735,13 @@ namespace GetWebPageDate.Util
             {
                 Dictionary<string, BaseItemInfo> items = new Dictionary<string, BaseItemInfo>();
                 BaseItemInfo item = new BaseItemInfo();
-                item.ID = "国药准字Z11020294";
+                item.ID = "国药准字H20061246";
                 item.ViewCount = "2461435";
-                item.Format = "0.25gx40片/瓶";
-                item.Name = "利肺片";
-                item.Created = "北京同仁堂科技发展股份有限公司制药厂";
+                item.Format = "0.25gx10片/瓶";
+                item.Name = "头孢丙烯片";
+                item.Created = "扬子江药业集团有限公司";
                 item.Type = "2017";
-                item.Inventory = "52";
+                item.Inventory = "127";
                 item.ItemName = "196329";
                 items.Add("", item);
                 return items;

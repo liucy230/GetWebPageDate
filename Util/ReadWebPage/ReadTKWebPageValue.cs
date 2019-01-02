@@ -69,6 +69,9 @@ namespace GetWebPageDate.Util
         private string username;
 
         private string password;
+
+        private string yfSellingItemType = "666";
+
         ///// <summary>
         ///// 是否需要加载
         ///// </summary>
@@ -527,15 +530,19 @@ namespace GetWebPageDate.Util
         /// <param name="item"></param>
         /// <param name="http"></param>
         /// <returns></returns>
-        public string UpdatePrice(BaseItemInfo item, string promotion = "115")
+        public string UpdatePrice(BaseItemInfo item, string promotion = "115", int count = 0)
         {
             if (string.IsNullOrEmpty(item.ViewCount))
             {
                 Dictionary<string, BaseItemInfo> sDic = GetSellingItem(item.ID);
                 string key = item.ID + item.Format;
-                if (sDic.ContainsKey(key))
+                foreach (BaseItemInfo sItem in sDic.Values)
                 {
-                    item.ViewCount = sDic[key].ViewCount;
+                    if (CommonFun.IsSameFormat(sItem.Format, item.Format))
+                    {
+                        item.ViewCount = sItem.ViewCount;
+                        break;
+                    }
                 }
             }
 
@@ -551,6 +558,12 @@ namespace GetWebPageDate.Util
 
                 string info = request.HttpPost(updateUrl, postStr);
 
+                if (info.Contains("2") && count == 0)
+                {
+                    item.ShopPrice = Convert.ToDecimal(CommonFun.GetValue(info, "info\":\"", "\""));
+                    UpdatePrice(item, promotion, count++);
+                }
+                
                 return info;
             }
 
@@ -584,26 +597,83 @@ namespace GetWebPageDate.Util
             }
         }
 
+        public BaseItemInfo GetTKItemByPlateItem(BaseItemInfo item)
+        {
+            Dictionary<string, BaseItemInfo> tkItem = GetSellingItem(item.ID);
+
+            foreach (BaseItemInfo sItem in tkItem.Values)
+            {
+                if (CommonFun.IsSameFormat(sItem.Format, item.Format))
+                {
+                    return sItem;
+                }
+            }
+
+            return null;
+        }
+
         public void UpdateFixedItem(bool opt)
         {
-            foreach (KeyValuePair<string, BaseItemInfo> info in unUpdate)
+            //读取在售列表
+            sellItems = GetSellingItem();
+            //读取下架列表
+            downItems = GetDownListItem();
+
+            ReadPlatFormWebPageValue yf = new ReadPlatFormWebPageValue();
+            yf.Login(2);
+
+            Dictionary<string, BaseItemInfo> yfSellingItems = yf.GetSellingItems();
+
+            foreach (KeyValuePair<string, BaseItemInfo> info in yfSellingItems)
             {
-                if (!sellItems.ContainsKey(info.Key))
+                BaseItemInfo item = info.Value;
+
+                CommonFun.WriteCSV(fileName + "yfSelling" + ticks + fileExtendName, item);
+
+                bool isSelling = false;
+                foreach (KeyValuePair<string, BaseItemInfo> tkInfo in sellItems)
                 {
-                    if (downItems.ContainsKey(info.Key))
+                    BaseItemInfo tkItem = tkInfo.Value;
+                    if (CommonFun.IsSameItem(item.ID, tkItem.ID, item.Format, tkItem.Format, item.Name, tkItem.Name))
                     {
-                        //重新上架
-                        ReUpItem(downItems[info.Key], opt);
+                        isSelling = true;
+                        break;
                     }
-                    else
+                }
+
+                if (!isSelling)
+                {
+                    if (opt)
                     {
-                        //新发布
-                        UpNewItem(info.Value, opt);
+                        bool isDowning = false;
+                        foreach (KeyValuePair<string, BaseItemInfo> tkDInfo in downItems)
+                        {
+                            BaseItemInfo tkDItem = tkDInfo.Value;
+                            if (CommonFun.IsSameItem(item.ID, tkDItem.ID, item.Format, tkDItem.Format, item.Name, tkDItem.Name))
+                            {
+                                //重新上架
+                                tkDItem.ShopPrice = tkDItem.PlatformPrice;
+                                ReUpItem(downItems[tkDInfo.Key], opt);
+                                UpdatePrice(downItems[tkDInfo.Key], yfSellingItemType);
+                                isDowning = true;
+                                break;
+                            }
+                        }
+
+                        if (!isDowning)
+                        {
+                            //新发布
+                            //item.ShopPrice = GetTKMinPrice(item.ID, item.Format);
+                            if (UpNewItem(item, opt))
+                            {
+                                BaseItemInfo newItem = GetTKItemByPlateItem(item);
+                                newItem.ShopPrice = GetTKMinPrice(newItem.ID, newItem.Format);
+                                UpdatePrice(newItem, yfSellingItemType);
+                            }
+                        }
                     }
 
-                    sellItems.Add(info.Key, info.Value);
-
-                    CommonFun.WriteCSV("TK/UpdateFixedItem" + ticks + ".csv", info.Value);
+                    CommonFun.WriteCSV(fileName + "yfSellingUP" + ticks + fileExtendName, item);
                 }
             }
         }
@@ -1133,12 +1203,15 @@ namespace GetWebPageDate.Util
                     bool opt = true;
 
                     Login();
+
+                    //上架固定表
+                    UpdateFixedItem(opt);
+
                     //读取在售列表
                     sellItems = GetSellingItem();
                     //读取下架列表
                     downItems = GetDownListItem();
-                    //上架固定表
-                    UpdateFixedItem(opt);
+
                     //读取平台的所有数据
                     ReadAllMenuURL();
                     //对比数据
@@ -1194,7 +1267,7 @@ namespace GetWebPageDate.Util
                             }
 
                             //不参加对比
-                            if (unUpdate.ContainsKey(key))
+                            if (item.Type == yfSellingItemType)
                             {
                                 continue;
                             }
@@ -1225,7 +1298,7 @@ namespace GetWebPageDate.Util
                                 bool isExist = false;
                                 foreach (BaseItemInfo compareItem in compareItems)
                                 {
-                                    if (CommonFun.IsSameFormat(item.Format, compareItem.Format, item.Name, compareItem.Name))
+                                    if (CommonFun.IsSameFormat(item.Format, compareItem.Format) || CommonFun.IsSameFormat(item.Format, compareItem.Format, item.Name, compareItem.Name))
                                     {
                                         isExist = true;
                                         if (item.ShopPrice == 0)
@@ -1266,33 +1339,33 @@ namespace GetWebPageDate.Util
                                                 UpdatePrice(item);
                                                 Thread.Sleep(random.Next(2, 5) * 1000);
                                             }
-                                            else if (sellItems[key].Type == "333")
-                                            {
-                                                UpdatePrice(item);
-                                                Thread.Sleep(random.Next(2, 5) * 1000);
-                                            }
+                                            //else if (sellItems[key].Type == "333")
+                                            //{
+                                            //    UpdatePrice(item);
+                                            //    Thread.Sleep(random.Next(2, 5) * 1000);
+                                            //}
 
                                             break;
                                         }
-                                        else
-                                        {
-                                            //修改为药房价*2
-                                            if (!sellItems.ContainsKey(key))
-                                            {
-                                                if (downItems.ContainsKey(key))
-                                                {
-                                                    ReUpItem(downItems[key], opt);
-                                                }
-                                                else
-                                                {
-                                                    UpNewItem(item, opt);
-                                                }
-                                            }
-                                            item.ShopPrice = GetNoProfitItemPrice(compareItem.ShopSelaPrice);
-                                            item.PlatformPrice = compareItem.ShopSelaPrice;
-                                            UpdatePrice(item, "333");
-                                            CommonFun.WriteCSV("TK/UpdateDoublePrice" + ticks + ".csv", item);
-                                        }
+                                        //else
+                                        //{
+                                        //    //修改为药房价*2
+                                        //    if (!sellItems.ContainsKey(key))
+                                        //    {
+                                        //        if (downItems.ContainsKey(key))
+                                        //        {
+                                        //            ReUpItem(downItems[key], opt);
+                                        //        }
+                                        //        else
+                                        //        {
+                                        //            UpNewItem(item, opt);
+                                        //        }
+                                        //    }
+                                        //    item.ShopPrice = GetNoProfitItemPrice(compareItem.ShopSelaPrice);
+                                        //    item.PlatformPrice = compareItem.ShopSelaPrice;
+                                        //    UpdatePrice(item, "333");
+                                        //    CommonFun.WriteCSV("TK/UpdateDoublePrice" + ticks + ".csv", item);
+                                        //}
                                         ////价格对比
                                         //if (sellItems.ContainsKey(key))
                                         //{
@@ -1705,7 +1778,7 @@ namespace GetWebPageDate.Util
                 {
                     string format = CommonFun.GetValue(m.Value, "<span class=\"red\">", "</span>");
 
-                    if (format == item.Format)
+                    if (CommonFun.IsSameFormat(item.Format, format))
                     {
                         string value = CommonFun.GetValue(m.Value, "value=\"", "\"");
 
@@ -1722,7 +1795,7 @@ namespace GetWebPageDate.Util
                                 for (int i = 0; i < vMs.Count; i++)
                                 {
                                     string idStr = CommonFun.GetValue(vMs[i].Value, "value=\"", "\"");
-                                    paramStr += string.Format(param, idStr, idStr, idStr, item.ShopPrice, GetStock(item.ShopPrice));
+                                    paramStr += string.Format(param, idStr, idStr, idStr, item.ShopPrice, item.Inventory);
                                 }
 
                                 request.HttpPost(checkUrl, string.Format(postDataStr, HttpUtility.UrlEncode(item.ID).ToUpper(), value) + paramStr, url, "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8", null);
@@ -1732,6 +1805,7 @@ namespace GetWebPageDate.Util
                                 return true;
                             }
                         }
+                        break;
                     }
                 }
             }

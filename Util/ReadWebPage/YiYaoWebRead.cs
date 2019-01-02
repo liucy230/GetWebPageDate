@@ -461,7 +461,7 @@ namespace GetWebPageDate.Util.ReadWebPage
                                             {
                                                 if (UpItem(item))
                                                 {
-                                                    UpdatePirceAndQuantity(item.ViewCount, "100", "103", yfItem.Inventory);
+                                                    UpdatePirceAndQuantity(item.ViewCount, item.ShopPrice.ToString(), item.ShopSelaPrice.ToString(), yfItem.Inventory);
 
                                                     if (yfHistoryItems.ContainsKey(value.Key))
                                                     {
@@ -905,6 +905,19 @@ namespace GetWebPageDate.Util.ReadWebPage
                 item.ID = CommonFun.GetValue(ms[3].Value, "value=\"", "\"");
 
                 item.Format = CommonFun.GetValue(ms[4].Value, "value=\"", "\"");
+
+                itemStr = CommonFun.GetValue(content, "<div class=\"goods_choose_mainGoods\" id=\"mainGoodsDivId\">", "<div id=\"storeSchemeProvinceDiv\" class=\"storeSchemeProvinceDiv\"  style=\"display:none;\">");
+
+
+                 MatchCollection pMs = CommonFun.GetValues(itemStr,"<div", "</div>");
+
+                 string priceStr = CommonFun.GetValue(pMs[0].Value, "value=\"", "\"");
+
+                 item.ShopPrice = string.IsNullOrEmpty(priceStr) ? 0 : Convert.ToDecimal(priceStr);
+
+                 priceStr = CommonFun.GetValue(pMs[1].Value, "value=\"", "\"");
+
+                 item.ShopSelaPrice = string.IsNullOrEmpty(priceStr) ? 0 : Convert.ToDecimal(priceStr);
             }
             catch (Exception ex)
             {

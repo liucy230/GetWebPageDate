@@ -32,7 +32,7 @@ namespace GetWebPageDate
                 //readPlatform.Start();
                 //readPlatform.UpdatePrice();
                 //readPlatform.OptOrder();
-                //readPlatform.OptWaitingSend();
+                readPlatform.OptWaitingSend();
                 #endregion
 
                 #region tk上架操作
@@ -82,7 +82,7 @@ namespace GetWebPageDate
                 //yiYaoread.DownDoubleItems();
                 //yiYaoread.SyncYFItems();
                 //yiYaoread.GetSellingItem("1601910842", DateTime.Now);
-                yiYaoread.Start();
+                //yiYaoread.Start();
                 //yiYaoread.GetOrderDetail();
                 //yiYaoread.UpdatePrice();
                 //yiYaoread.Test();

@@ -794,16 +794,16 @@ namespace GetWebPageDate.Util
             switch (type)
             {
                 case 1:
-                    postDataStr = string.Format("__EVENTTARGET=ctl00%24ContentPlaceHolder1%24t_login&__EVENTARGUMENT=&__VIEWSTATE=%2FwEPDwUINDE0MjQ5NzVkGAEFHl9fQ29udHJvbHNSZXF1aXJlUG9zdEJhY2tLZXlfXxYBBSVjdGwwMCRDb250ZW50UGxhY2VIb2xkZXIxJGNiX1JlbWVtYmVyfMPsdmjZlfvGbCxOD8u0r%2FRLbA8%3D&__VIEWSTATEGENERATOR=C2EE9ABB&__EVENTVALIDATION=%2FwEdAAosVaXMhV4q7s19NxAQU1EA%2FX3Fo%2FRaqYiLtErA%2B0XLEhccBLe9MIf%2BOeu1SwHT%2Fo2ng0PqTUAPaPYHk4tr%2FTPfKqmCwJguV16MgvgQAIOIM5gCICnqqodEefzHnITuNvGKN2iu4q6IDCzyu2cVK%2B2X9v9Eq8t4s5ZZ5SNoKNrRyao0KorV0rlA31R%2FnAfLx9YONrIXtTlQ%2FOFtaven3EmBxJNqndFqhuABr6rHIEGR90USvzc%3D&ctl00%24ContentPlaceHolder1%24txt_AccountName={0}&ctl00%24ContentPlaceHolder1%24txt_Password={1}&ctl00%24ContentPlaceHolder1%24txt_ValidateCode=&ctl00%24ContentPlaceHolder1%24txt_Mobile=&ctl00%24ContentPlaceHolder1%24txt_ValidateCode1=&ctl00%24ContentPlaceHolder1%24txtMobileCode=&ctl00%24ContentPlaceHolder1%24hf_type=default", CommonFun.GetUrlEncode(username), password);
+                    postDataStr = string.Format("UserName={0}&Password={1}&isRemembered=true&ImageCode=&LoginType=0&__RequestVerificationToken={2}", CommonFun.GetUrlEncode(username), password, token);
                     break;
                 case 2:
                     postDataStr = string.Format("UserName={0}&Password={1}&isRemembered=true&ImageCode=&LoginType=0&__RequestVerificationToken={2}", CommonFun.GetUrlEncode(username1), password1, token);
                     break;
                 case 3:
-                    postDataStr = string.Format("__EVENTTARGET=ctl00%24ContentPlaceHolder1%24t_login&__EVENTARGUMENT=&__VIEWSTATE=%2FwEPDwUINDE0MjQ5NzVkGAEFHl9fQ29udHJvbHNSZXF1aXJlUG9zdEJhY2tLZXlfXxYBBSVjdGwwMCRDb250ZW50UGxhY2VIb2xkZXIxJGNiX1JlbWVtYmVyfMPsdmjZlfvGbCxOD8u0r%2FRLbA8%3D&__VIEWSTATEGENERATOR=C2EE9ABB&__EVENTVALIDATION=%2FwEdAAosVaXMhV4q7s19NxAQU1EA%2FX3Fo%2FRaqYiLtErA%2B0XLEhccBLe9MIf%2BOeu1SwHT%2Fo2ng0PqTUAPaPYHk4tr%2FTPfKqmCwJguV16MgvgQAIOIM5gCICnqqodEefzHnITuNvGKN2iu4q6IDCzyu2cVK%2B2X9v9Eq8t4s5ZZ5SNoKNrRyao0KorV0rlA31R%2FnAfLx9YONrIXtTlQ%2FOFtaven3EmBxJNqndFqhuABr6rHIEGR90USvzc%3D&ctl00%24ContentPlaceHolder1%24txt_AccountName={0}&ctl00%24ContentPlaceHolder1%24txt_Password={1}&ctl00%24ContentPlaceHolder1%24txt_ValidateCode=&ctl00%24ContentPlaceHolder1%24txt_Mobile=&ctl00%24ContentPlaceHolder1%24txt_ValidateCode1=&ctl00%24ContentPlaceHolder1%24txtMobileCode=&ctl00%24ContentPlaceHolder1%24hf_type=default", CommonFun.GetUrlEncode(username2), password2);
+                    postDataStr = string.Format("UserName={0}&Password={1}&isRemembered=true&ImageCode=&LoginType=0&__RequestVerificationToken={2}", CommonFun.GetUrlEncode(username2), password2, token);
                     break;
                 default:
-                    postDataStr = string.Format("__EVENTTARGET=ctl00%24ContentPlaceHolder1%24t_login&__EVENTARGUMENT=&__VIEWSTATE=%2FwEPDwUINDE0MjQ5NzVkGAEFHl9fQ29udHJvbHNSZXF1aXJlUG9zdEJhY2tLZXlfXxYBBSVjdGwwMCRDb250ZW50UGxhY2VIb2xkZXIxJGNiX1JlbWVtYmVyfMPsdmjZlfvGbCxOD8u0r%2FRLbA8%3D&__VIEWSTATEGENERATOR=C2EE9ABB&__EVENTVALIDATION=%2FwEdAAosVaXMhV4q7s19NxAQU1EA%2FX3Fo%2FRaqYiLtErA%2B0XLEhccBLe9MIf%2BOeu1SwHT%2Fo2ng0PqTUAPaPYHk4tr%2FTPfKqmCwJguV16MgvgQAIOIM5gCICnqqodEefzHnITuNvGKN2iu4q6IDCzyu2cVK%2B2X9v9Eq8t4s5ZZ5SNoKNrRyao0KorV0rlA31R%2FnAfLx9YONrIXtTlQ%2FOFtaven3EmBxJNqndFqhuABr6rHIEGR90USvzc%3D&ctl00%24ContentPlaceHolder1%24txt_AccountName={0}&ctl00%24ContentPlaceHolder1%24txt_Password={1}&ctl00%24ContentPlaceHolder1%24txt_ValidateCode=&ctl00%24ContentPlaceHolder1%24txt_Mobile=&ctl00%24ContentPlaceHolder1%24txt_ValidateCode1=&ctl00%24ContentPlaceHolder1%24txtMobileCode=&ctl00%24ContentPlaceHolder1%24hf_type=default", CommonFun.GetUrlEncode(username), password);
+                    postDataStr = string.Format("UserName={0}&Password={1}&isRemembered=true&ImageCode=&LoginType=0&__RequestVerificationToken={2}", CommonFun.GetUrlEncode(username), password, token);
                     break;
             }
 
@@ -895,7 +895,7 @@ namespace GetWebPageDate.Util
                 {
                     try
                     {
-                        string sUrl = string.Format("http://yaodian.yaofangwang.com/Manage/Sell/Order.aspx?status=AUDIT&page={0}", page);
+                        string sUrl = string.Format("http://yaodian.yaofangwang.com/order/List?status=PAID&page={0}", page);
 
                         string content = request.HttpGet(sUrl);
 
@@ -913,13 +913,14 @@ namespace GetWebPageDate.Util
 
                         foreach (string orderNO in orderDic.Keys)
                         {
-                            string subUrl = "http://yaodian.yaofangwang.com/Manage/Handler/Handler.ashx";
+                            string subUrl = string.Format("http://yaodian.yaofangwang.com/order/RX_Audit/{0}", orderNO);
 
-                            string postData = string.Format("method=CustomerRxAuditResult&orderno={0}&audit=1&auditContent=%E5%A4%84%E6%96%B9%E7%85%A7%E7%89%87%E7%AC%A6%E5%90%88%E8%A6%81%E6%B1%82%E8%A7%84%E8%8C%83", orderNO);
+                            string postData = string.Format("orderno={0}&content=%E5%A4%84%E6%96%B9%E7%85%A7%E7%89%87%E7%AC%A6%E5%90%88%E8%A6%81%E6%B1%82%E8%A7%84%E8%8C%83&valid=valid&X-Requested-With=XMLHttpRequest", orderNO);
 
                             string result = request.HttpPost(subUrl, postData);
 
-                            if (result != "True")
+                            result = CommonFun.GetValue(result, "code\":", ",");
+                            if (result != "1")
                             {
                                 Console.WriteLine(result + orderNO + "...........");
                             }
@@ -964,7 +965,7 @@ namespace GetWebPageDate.Util
                     int state = Convert.ToInt32(stateStr);
                     if (isGetDesc)
                     {
-                        if (state < 1)
+                        if (state > 0)
                         {
                             string desc = CommonFun.GetValue(m.Value, "title=\"", "\"");
 
@@ -974,7 +975,10 @@ namespace GetWebPageDate.Util
                                 orderNO = orderNO.Substring(0, orderNO.Length - 1);
                                 if (desc.Length == 12 && desc == CommonFun.GetNum(desc))
                                 {
-                                    orderDic.Add(orderNO, desc);
+                                    if (!orderDic.ContainsKey(orderNO))
+                                    {
+                                        orderDic.Add(orderNO, desc);
+                                    }
                                 }
                                 else
                                 {
@@ -989,7 +993,10 @@ namespace GetWebPageDate.Util
                         {
                             string orderNO = CommonFun.GetValue(m.Value, "<a href=\"/order/EditDesc/", "rank=");
                             orderNO = orderNO.Substring(0, orderNO.Length - 1);
-                            orderDic.Add(orderNO, "");
+                            if (!orderDic.ContainsKey(orderNO))
+                            {
+                                orderDic.Add(orderNO, "");
+                            }
                         }
                     }
                 }
@@ -1047,7 +1054,7 @@ namespace GetWebPageDate.Util
         {
             try
             {
-                Login(2);
+                Login(3);
 
                 InitOptWaitingSendConfig();
 
@@ -1136,14 +1143,19 @@ namespace GetWebPageDate.Util
 
                         MatchCollection iMs = CommonFun.GetValues(m.Value, "<td class=\"tdcenter lh24\" rowspan=\"1\">", "<");
                         //MatchCollection iMs1 = CommonFun.GetValues(m.Value, "<td class=\"tdcenter lh24\" >", "</td>");
-                        item.ID += name + " ";
+                        item.ID += name.Trim().Replace(" ", "").Replace("\r\n", "") + " ";
                         item.ID += iMs[0].Value.Trim() + " ";
                         item.ID += iMs[1].Value.Trim() + " ";
-                        string priceStr = CommonFun.GetValue(m.Value, "¥", "<");
+                        string priceStr = iMs[3].Value.Trim().Replace(" ", "");
+                        priceStr = priceStr.Replace("¥", "");
                         //item.ShopPrice = Convert.ToDecimal(priceStr.Trim());
                         //item.ID += iMs[2].Value.Trim() + " ";
+                        string toPriceStr = iMs[4].Value.Trim().Replace(" ", "");
+                        toPriceStr = toPriceStr.Replace("¥", "");
+                        int itemCount =Convert.ToInt32(Convert.ToDecimal(toPriceStr) / Convert.ToDecimal(priceStr));
                         string stock = CommonFun.GetValue(itemInfo, "库存：", "\"");
-                        item.ID += stock;
+                        item.ID += itemCount + " " + "剩余：";
+                        item.ID += Convert.ToInt32(stock) - itemCount;
 
                         YFOrderInfo tItem = new YFOrderInfo();
                         tItem.ItemName = name;
@@ -1196,7 +1208,7 @@ namespace GetWebPageDate.Util
                     BaseItemInfo item = wItem.BaseItem;
 
                     string orderNO = item.Created;
-                    string rank = "0";
+                    string rank = "1";
                     string dec = startOrderNO.ToString();
 
                     if (!IsRedTag(item.ViewCount))
@@ -1286,7 +1298,7 @@ namespace GetWebPageDate.Util
                 {
                     try
                     {
-                        string sUrl = string.Format("http://yaodian.yaofangwang.com/Manage/Sell/Order.aspx?status=PAID&page={0}", page);
+                        string sUrl = string.Format("http://yaodian.yaofangwang.com/order/List?status=PAID&page={0}", page);
 
                         string content = request.HttpGet(sUrl);
 
@@ -1311,7 +1323,7 @@ namespace GetWebPageDate.Util
                 {
                     try
                     {
-                        string tUrl = string.Format("https://yaodian.yaofangwang.com/Manage/Sell/OrderSend.aspx?OrderNo={0}", orderNO);
+                        string tUrl = string.Format("http://yaodian.yaofangwang.com/order/Send/{0}", orderNO);
 
                         string content = request.HttpGet(tUrl);
 
@@ -1330,23 +1342,32 @@ namespace GetWebPageDate.Util
 
                         List<string> orderNOStr = new List<string>();
 
-                        content = CommonFun.GetValue(content, "<div class=\"bg-white \">", "确认发货");
+                        content = CommonFun.GetValue(content, " <tbody>", "</tbody>");
 
-                        MatchCollection ms = CommonFun.GetValues(content, "<div class=\"form-group input-inline  mb10\">", "</div>");
+                        MatchCollection ms = CommonFun.GetValues(content, " <tr", "</tr>");
 
+                        int count = 0;
+                        string listPostStr = "&batch_list%5B{0}%5D%5Bqty%5D={1}&batch_list%5B{0}%5D%5Bbatchno%5D={2}&batch_list%5B{0}%5D%5Bmedicine_orderno%5D={3}";
+                        string itemListPostStr = "";
                         foreach (Match m in ms)
                         {
-                            orderNOStr.Add(CommonFun.GetValue(m.Value, "parsl='", "'"));
-                            dateStr.Add(GetCreateDate() + "," + CommonFun.GetValue(m.Value, " value='", "'"));
-
-                            //C809201313164538-1#C809201313164538-2@2018-03-20,1#2018-06-20,5
+                            //batch_list[0][qty]:2
+                            //batch_list[0][batchno]:2018-12-31
+                            //batch_list[0][medicine_orderno]:C9010610304980441-1
+                            string qty = CommonFun.GetValue(m.Value, "<input type=\"number\" minvalue=\"1\" value=\"", "\"");
+                            string batchno = GetCreateDate();
+                            string medicine_orderno = CommonFun.GetValue(m.Value, "data-id=\"", "\"") +"-" +(count +1);
+                            itemListPostStr += string.Format(listPostStr, count, qty, batchno, medicine_orderno);
+                            
+                            count++;
                         }
 
-                        string datePostStr = string.Join("#", orderNOStr.ToArray()) + "@" + string.Join("#", dateStr.ToArray());
+                        //string datePostStr = string.Join("#", orderNOStr.ToArray()) + "@" + string.Join("#", dateStr.ToArray());
 
-                        string postData = string.Format("__EVENTTARGET=ctl00%24cph_content%24btn_Send&__EVENTARGUMENT=&__VIEWSTATE={0}&__VIEWSTATEGENERATOR={1}&ctl00%24cph_content%24hf_productnoandcustomerordermedicineno={2}&ctl00%24cph_content%24ddl_Logistics=2&ctl00%24cph_content%24txt_OrderWebNumber={3}&ctl00%24cph_content%24txt_InvoiceNo=&ctl00%24cph_content%24txt_code=&sendAddress=rb_Address&ctl00%24cph_content%24hf_AddressId={4}&returnAddress=rb_Address&ctl00%24cph_content%24hf_returnAddressId={5}&ctl00%24cph_content%24stype=0", viewState, generator, CommonFun.GetUrlEncode(datePostStr, false), orderList[orderNO], 1048, 2374);
-
-                        string subUrl = string.Format("https://yaodian.yaofangwang.com/Manage/Sell/OrderSend.aspx?OrderNo={0}", orderNO);
+                        //string postData = string.Format("__EVENTTARGET=ctl00%24cph_content%24btn_Send&__EVENTARGUMENT=&__VIEWSTATE={0}&__VIEWSTATEGENERATOR={1}&ctl00%24cph_content%24hf_productnoandcustomerordermedicineno={2}&ctl00%24cph_content%24ddl_Logistics=2&ctl00%24cph_content%24txt_OrderWebNumber={3}&ctl00%24cph_content%24txt_InvoiceNo=&ctl00%24cph_content%24txt_code=&sendAddress=rb_Address&ctl00%24cph_content%24hf_AddressId={4}&returnAddress=rb_Address&ctl00%24cph_content%24hf_returnAddressId={5}&ctl00%24cph_content%24stype=0", viewState, generator, CommonFun.GetUrlEncode(datePostStr, false), orderList[orderNO], 1048, 2374);
+                        string postData = string.Format("orderno={0}&trafficno={1}&invoiceno=&trafficid=2&traffic_name=%E5%9C%86%E9%80%9A%E5%BF%AB%E9%80%92&return_store_addressid=6834&store_addressid=6783&used_eew=0{2}", orderNO, orderList[orderNO], itemListPostStr);
+                       
+                        string subUrl ="http://yaodian.yaofangwang.com/order/Send";
 
                         string result = request.HttpPost(subUrl, postData);
 

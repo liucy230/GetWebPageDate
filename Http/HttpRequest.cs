@@ -103,28 +103,7 @@ namespace GetWebPageDate.Http
                         request.Headers.Add("Cookie", cookie);
                     }
 
-                    if (heads != null)
-                    {
-                        foreach (KeyValuePair<string, string> head in heads)
-                        {
-                            if (head.Key == "Date")
-                            {
-                                request.Date = Convert.ToDateTime(head.Value);
-                            }
-                            else if (head.Key == "Content-Type")
-                            {
-                                request.ContentType = head.Value;
-                            }
-                            else if (head.Key == "User-Agent")
-                            {
-                                request.UserAgent = head.Value;
-                            }
-                            else
-                            {
-                                request.Headers.Add(head.Key, head.Value);
-                            }
-                        }
-                    }
+                    AddHeads(heads, request);
 
                     if (!string.IsNullOrEmpty(postDataStr))
                     {
@@ -197,18 +176,18 @@ namespace GetWebPageDate.Http
                 //request.Headers.Add("Accept-Charset", "GBK,utf-8;q=0.7,*;q=0.3");
                 //request.Headers.Add("Host", "www.hyey.cn");
                 //request.CookieContainer = myCookieContainer;
-    //            request.Headers.Add("Cookie", "	__jsluid=461a853c4fabb30826b6e52419570ef1"
-    //+ "UM_distinctid=1671133d9f429-07f92019831a7a-5c11301c-1fa400-1671133d9f56"
-    //+ "HistoryMedicine=9154300|6231990|3825429|3954845|11906090|3985362|4037712"
-    //+ "real_ip=219.137.142.51"
-    //+ "Hm_lvt_e5f454eb1aa8e839f8845470af4667eb=1546673024"
-    //+ "hotkeywords=%E8%A1%A5%E8%A1%80%23%231%23%23wwwsearch%23%23%24%23%23search.html%23%23keyword%3D%25e8%25a1%25a5%25e8%25a1%2580%40%40999%23%230%23%23other_https%3A%2F%2Fwww.yaofangwang.com%2Fsearch%2F13791.html%40%40%E7%89%87%E4%BB%94%E7%99%80%23%230%23%23other_https%3A%2F%2Fwww.yaofangwang.com%2Fsearch%2F39735.html%40%40%E5%A6%88%E5%AF%8C%E9%9A%86%23%230%23%23wwwsearch%23%23%24%23%23search.html%23%23keyword%3D%25e5%25a6%2588%25e5%25af%258c%25e9%259a%2586%40%40%E9%98%BF%E8%83%B6%23%231%23%23other_https%3A%2F%2Fwww.yaofangwang.com%2Fsearch%2F11442.html%40%40%E9%87%91%E6%88%88%23%230%23%23other_https%3A%2F%2Fwww.yaofangwang.com%2Fsearch%2F30642.html%40%40%E6%B1%A4%E8%87%A3%E5%80%8D%E5%81%A5%23%230%23%23other_https%3A%2F%2Fwww.yaofangwang.com%2Fsearch%2F50493.html"
-    //+ "__RequestVerificationToken=Z_ElEcjuJBuCSy5ZIUdQZPQ92GYVe-XsFmlRsGRwgXxIlslu8OC6dGAzJ5iEt7X4v4eMHCLmd__DYWFqHixzk_Zpoc8cGlWJkMBwtCqDxzs1"
-    //+ "ASP.NET_SessionId=dbqivtdhkd3n2o1frxyb4f3t"
-    //+ "historysearch="
-    //+ "logined_username=BSK777"
-    //+ "CNZZDATA1261831897=1407370989-1546668388-https%253A%252F%252Fwww.yaofangwang.com%252F%7C1546679190"
-    //+ "Hm_lpvt_e5f454eb1aa8e839f8845470af4667eb=1546681415");
+                //            request.Headers.Add("Cookie", "	__jsluid=461a853c4fabb30826b6e52419570ef1"
+                //+ "UM_distinctid=1671133d9f429-07f92019831a7a-5c11301c-1fa400-1671133d9f56"
+                //+ "HistoryMedicine=9154300|6231990|3825429|3954845|11906090|3985362|4037712"
+                //+ "real_ip=219.137.142.51"
+                //+ "Hm_lvt_e5f454eb1aa8e839f8845470af4667eb=1546673024"
+                //+ "hotkeywords=%E8%A1%A5%E8%A1%80%23%231%23%23wwwsearch%23%23%24%23%23search.html%23%23keyword%3D%25e8%25a1%25a5%25e8%25a1%2580%40%40999%23%230%23%23other_https%3A%2F%2Fwww.yaofangwang.com%2Fsearch%2F13791.html%40%40%E7%89%87%E4%BB%94%E7%99%80%23%230%23%23other_https%3A%2F%2Fwww.yaofangwang.com%2Fsearch%2F39735.html%40%40%E5%A6%88%E5%AF%8C%E9%9A%86%23%230%23%23wwwsearch%23%23%24%23%23search.html%23%23keyword%3D%25e5%25a6%2588%25e5%25af%258c%25e9%259a%2586%40%40%E9%98%BF%E8%83%B6%23%231%23%23other_https%3A%2F%2Fwww.yaofangwang.com%2Fsearch%2F11442.html%40%40%E9%87%91%E6%88%88%23%230%23%23other_https%3A%2F%2Fwww.yaofangwang.com%2Fsearch%2F30642.html%40%40%E6%B1%A4%E8%87%A3%E5%80%8D%E5%81%A5%23%230%23%23other_https%3A%2F%2Fwww.yaofangwang.com%2Fsearch%2F50493.html"
+                //+ "__RequestVerificationToken=Z_ElEcjuJBuCSy5ZIUdQZPQ92GYVe-XsFmlRsGRwgXxIlslu8OC6dGAzJ5iEt7X4v4eMHCLmd__DYWFqHixzk_Zpoc8cGlWJkMBwtCqDxzs1"
+                //+ "ASP.NET_SessionId=dbqivtdhkd3n2o1frxyb4f3t"
+                //+ "historysearch="
+                //+ "logined_username=BSK777"
+                //+ "CNZZDATA1261831897=1407370989-1546668388-https%253A%252F%252Fwww.yaofangwang.com%252F%7C1546679190"
+                //+ "Hm_lpvt_e5f454eb1aa8e839f8845470af4667eb=1546681415");
 
                 HttpWebResponse response = (HttpWebResponse)request.GetResponse();
                 Stream myResponseStream = response.GetResponseStream();
@@ -229,6 +208,32 @@ namespace GetWebPageDate.Http
             }
 
             return null;
+        }
+
+        private void AddHeads(Dictionary<string, string> heads, HttpWebRequest request)
+        {
+            if (heads != null)
+            {
+                foreach (KeyValuePair<string, string> head in heads)
+                {
+                    if (head.Key == "Date")
+                    {
+                        request.Date = Convert.ToDateTime(head.Value);
+                    }
+                    else if (head.Key == "Content-Type")
+                    {
+                        request.ContentType = head.Value;
+                    }
+                    else if (head.Key == "User-Agent")
+                    {
+                        request.UserAgent = head.Value;
+                    }
+                    else
+                    {
+                        request.Headers.Add(head.Key, head.Value);
+                    }
+                }
+            }
         }
 
         public string Login(string url, string postDataStr, Dictionary<string, string> heads = null)
@@ -259,28 +264,7 @@ namespace GetWebPageDate.Http
                 request.UserAgent = "Mozilla/5.0 (Windows NT 6.1; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/63.0.3239.84 Safari/537.36";
                 request.CookieContainer = cookies;
 
-                if (heads != null)
-                {
-                    foreach (KeyValuePair<string, string> head in heads)
-                    {
-                        if (head.Key == "Date")
-                        {
-                            request.Date = Convert.ToDateTime(head.Value);
-                        }
-                        else if (head.Key == "Content-Type")
-                        {
-                            request.ContentType = head.Value;
-                        }
-                        else if (head.Key == "User-Agent")
-                        {
-                            request.UserAgent = head.Value;
-                        }
-                        else
-                        {
-                            request.Headers.Add(head.Key, head.Value);
-                        }
-                    }
-                }
+                AddHeads(heads, request);
 
                 //                __jsluid=461a853c4fabb30826b6e52419570ef1
                 //    UM_distinctid=1671133d9f429-07f92019831a7a-5c11301c-1fa400-1671133d9f56
@@ -391,24 +375,7 @@ namespace GetWebPageDate.Http
                         request.Headers.Add("Cookie", cookie);
                     }
 
-                    if (heads != null)
-                    {
-                        foreach (KeyValuePair<string, string> head in heads)
-                        {
-                            if (head.Key == "Date")
-                            {
-                                request.Date = Convert.ToDateTime(head.Value);
-                            }
-                            else if (head.Key == "Referer")
-                            {
-                                request.Referer = head.Value;
-                            }
-                            else
-                            {
-                                request.Headers.Add(head.Key, head.Value);
-                            }
-                        }
-                    }
+                    AddHeads(heads, request);
 
                     //request.Headers.Add("Host", "www.hyey.cn");
                     //request.CookieContainer = myCookieContainer;

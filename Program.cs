@@ -30,8 +30,8 @@ namespace GetWebPageDate
                 ReadPlatFormWebPageValue readPlatform = new ReadPlatFormWebPageValue();
                 //readPlatform.Test();
                 //readPlatform.Start();
-                //readPlatform.UpdatePrice();
-                readPlatform.OptOrder();
+                readPlatform.UpdatePrice();
+                //readPlatform.OptOrder();
                 //readPlatform.OptWaitingSend();
                 #endregion
 

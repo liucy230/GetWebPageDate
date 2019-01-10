@@ -62,6 +62,8 @@ namespace GetWebPageDate.Util
         /// </summary>
         private bool isAsc;
 
+        Dictionary<string, string> heads = new Dictionary<string, string>();
+
         public ReadPlatFormWebPageValue()
         {
             string userInfo1 = ConfigurationManager.AppSettings["yfUsernameAndPossword1"];
@@ -85,6 +87,9 @@ namespace GetWebPageDate.Util
             }
             selfName = ConfigurationManager.AppSettings["yfSelfName"];
             fileName = "YF/";
+
+            heads.Add("User-Agent", "Mozilla/5.0 (Windows NT 6.1; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/67.0.3396.87 Safari/537.36");
+            heads.Add("X-Requested-With", "XMLHttpRequest");
         }
 
         public override void ReadAllMenuURL()
@@ -289,8 +294,9 @@ namespace GetWebPageDate.Util
                     {
                         string inventoryStr = CommonFun.GetValue(m.Value, "<label class=\"sreserve\">", "</label>");
                         string priceStr = CommonFun.GetValue(m.Value, "¥", "<");
-                        string storeName = CommonFun.GetValue(m.Value, "主页\">", "</a>");
-
+                        priceStr = priceStr.Trim();
+                        string storeName = CommonFun.GetValue(m.Value, "<div class=\"shop\">", "</div>");
+                        storeName = CommonFun.GetValue(storeName, "title=\"", "\"");
                         if (!string.IsNullOrEmpty(inventoryStr) && !string.IsNullOrEmpty(priceStr) && !IsBlacklistStore(storeName) && storeName != selfName)
                         {
                             if (Convert.ToInt32(inventoryStr) > inventoryMin)
@@ -789,12 +795,15 @@ namespace GetWebPageDate.Util
             {
                 bool isUser = i == 1;
 
-                Dictionary<string, string> heads = new Dictionary<string, string>();
-                heads.Add("User-Agent", "Mozilla/5.0 (Windows NT 6.1; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/67.0.3396.87 Safari/537.36");
-                heads.Add("X-Requested-With", "XMLHttpRequest");
                 string login_url = "https://reg.yaofangwang.com/login.html";
 
-                HttpRequest lRequest = isUser ? userRequest : request;
+                HttpRequest lRequest = request;
+
+                if (isUser)
+                {
+                    type = 1;
+                    lRequest = userRequest;
+                }
 
                 string token = lRequest.GetLogin(login_url, null);
                 token = CommonFun.GetValue(token, "<input name=\"__RequestVerificationToken\" type=\"hidden\" value=\"", "\"");
@@ -1447,9 +1456,11 @@ namespace GetWebPageDate.Util
         {
             try
             {
-                string content = request.HttpGet("http://www.yaofangwang.com/medicine-" + item.ItemName + ".html?sort=price&sorttype=asc", null, true);
+                string content = request.HttpGet("https://www.yaofangwang.com/medicine-" + item.ItemName + ".html?sort=price&sorttype=asc", null, true);
 
-                string clickingRateStr = CommonFun.GetValue(content, "<dt>最近浏览</dt><dd class=\"w1\">", "次");
+                string clickingRateStr = CommonFun.GetValue(content, "<dt>最近浏览</dt>", "</dd>");
+
+                clickingRateStr = string.IsNullOrEmpty(clickingRateStr) ? "0" : CommonFun.GetNum(clickingRateStr);
 
                 return string.IsNullOrEmpty(clickingRateStr) ? 0 : Convert.ToInt32(clickingRateStr);
             }
@@ -1726,7 +1737,7 @@ namespace GetWebPageDate.Util
                     priceStr = CommonFun.GetValue(priceStr, "¥", "<");
                     item.ShopPrice = string.IsNullOrEmpty(priceStr) ? 0 : Convert.ToDecimal(priceStr);
                     item.Inventory = CommonFun.GetValue(m.Value, "<div>库存", "件");
-
+                    item.Inventory = item.Inventory.Trim();
 
                     item.ItemName = CommonFun.GetValue(m.Value, "<input type=\"hidden\" id=\"hf_MedicineId\" name=\"hf_MedicineId\" value=\"", "\"");
                     item.ViewCount = CommonFun.GetValue(m.Value, "<input type=\"hidden\" id=\"hf_ShopMedicineId\" name=\"hf_ShopMedicineId\" value=\"", "\"");
@@ -1742,6 +1753,16 @@ namespace GetWebPageDate.Util
         }
 
         /// <summary>
+        /// 获取text的值
+        /// </summary>
+        /// <param name="text"></param>
+        /// <returns></returns>
+        private string GetTextVaule(string text)
+        {
+            return CommonFun.GetValue(text, "value=\"", "\"");
+        }
+
+        /// <summary>
         /// 更新物品信息
         /// </summary>
         /// <param name="item"></param>
@@ -1751,26 +1772,78 @@ namespace GetWebPageDate.Util
         {
             try
             {
-                string iUrl = string.Format("https://yaodian.yaofangwang.com/Manage/Handler/Handler.ashx?method=GeFastEditMedicineInfo&smid={0}&s=1534320806748", item.ViewCount);
+                string qUrl = "https://yaodian.yaofangwang.com/product/edit/{0}";
+
+                string iUrl = string.Format(qUrl, item.ViewCount);
 
                 string content = request.HttpGet(iUrl, null, true);
 
                 if (!string.IsNullOrEmpty(content))
                 {
-                    JObject dJ = JsonConvert.DeserializeObject<JObject>(content);
+                    MatchCollection ms = CommonFun.GetValues(content, "<input type=\"text\"", "/>");
+                    string authorizedCode = GetTextVaule(ms[0].Value);
+                    string namecn = GetTextVaule(ms[1].Value);
+                    string aliascn = GetTextVaule(ms[2].Value);
+                    string trocheType = GetTextVaule(ms[3].Value);
+                    string standard = GetTextVaule(ms[4].Value);
+                    string title = GetTextVaule(ms[5].Value);
+                    string number = GetTextVaule(ms[6].Value);
+                    string weight = GetTextVaule(ms[7].Value);
+                    string barcode = GetTextVaule(ms[8].Value);
+                    string price = item.PlatformPrice.ToString(); // GetTextVaule(ms[9].Value);
+                    string max_buyqty = GetTextVaule(ms[10].Value);
+                    string reserve = item.Inventory;// GetTextVaule(ms[11].Value);
 
-                    JArray aj = JsonConvert.DeserializeObject<JArray>(dJ["JSON"].ToString());
+                    string scheduledDays = CommonFun.GetValue(content, "<select id=\"ddl_ScheduledDays\"", "</select>");
+                    MatchCollection sMs = CommonFun.GetValues(scheduledDays, "<option ", "</option>");
+                    foreach (Match sM in sMs)
+                    {
+                        if (sM.Value.Contains("selected"))
+                        {
+                            scheduledDays = CommonFun.GetValue(sM.Value, "value=\"", "\"");
+                            break;
+                        }
+                    }
 
-                    JObject obj = (JObject)aj[0];
+                    if (string.IsNullOrEmpty(status))
+                    {
+                        status = CommonFun.GetValue(content, "<select id=\"ddl_Status\"", "</select>");
+                        MatchCollection statusMs = CommonFun.GetValues(status, "<option ", "</option>");
+                        foreach (Match sM in statusMs)
+                        {
+                            if (sM.Value.Contains("selected"))
+                            {
+                                status = CommonFun.GetValue(sM.Value, "value=\"", "\"");
+                                break;
+                            }
+                        }
+                    }
 
-                    status = string.IsNullOrEmpty(status) ? obj["Status"].ToString() : status;
+                    string typeid = "0";
+                    string periodTo = "";
 
-                    string url = string.Format("https://yaodian.yaofangwang.com/Manage/Handler/Handler.ashx?method=SaveFastEditMedicineInfo&smid={0}&price={1}&xnReserve={2}&discount={3}&sprice=&sdiscount={4}&weight={5}&isdiscount={6}&Status={7}&iserp={8}&scheduleddays={9}",
-                        item.ViewCount, item.PlatformPrice, item.Inventory, 10, 10, obj["mWeight"].ToString() == "0" ? obj["Weight"] : obj["mWeight"], 0, status, obj["IsErp"].ToString() == "0" ? false : true, obj["ScheduledDays"]);
+                    string postDateStr = "store_medicineid={0}&medicine_barcode={1}&authorized_code={2}&namecn={3}&standard={4}&troche_type={5}&aliascn={6}&scheduled_days={7}&store_medicine_status={8}&mill_title={9}&product_number={10}&weight={11}&store_medicine_typeid={12}&reserve={13}&max_buyqty=&price={14}&period_to=";
 
-                    content = request.HttpGet(url, null, true);
+                    postDateStr = string.Format(postDateStr,
+                         item.ViewCount,
+                         barcode,
+                         CommonFun.GetUrlEncode(authorizedCode, false),
+                         CommonFun.GetUrlEncode(namecn, false),
+                         CommonFun.GetUrlEncode(standard, false),
+                         CommonFun.GetUrlEncode(trocheType, false),
+                         CommonFun.GetUrlEncode(aliascn, false),
+                         scheduledDays,
+                         status,
+                         CommonFun.GetUrlEncode(title, false),
+                         number,
+                         weight,
+                         typeid,
+                         reserve,
+                         price);
 
-                    if (content == "1")
+                    content = request.HttpPost(iUrl, postDateStr, heads);
+                    string result = CommonFun.GetValue(content, "\"code\":", ",");
+                    if (result == "1")
                     {
                         return true;
                     }

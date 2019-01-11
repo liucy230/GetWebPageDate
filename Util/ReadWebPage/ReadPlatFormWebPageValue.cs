@@ -264,7 +264,7 @@ namespace GetWebPageDate.Util
 
                 content = userRequest.HttpGet("https://www.yaofangwang.com/medicine-" + item.ItemName + ".html?sort=price&sorttype=asc", null, true);
 
-                string selaStr = CommonFun.GetValue(content, "class=\"all default_cursor fb_red mr10\">", "折");
+                string selaStr = CommonFun.GetValue(content, "class=\"all default_cursor fb_red mr10\">", "</a>");
 
                 do
                 {
@@ -305,33 +305,33 @@ namespace GetWebPageDate.Util
 
                                 info.Sela = 10;
 
+                                //if (!string.IsNullOrEmpty(selaStr))
+                                //{
+                                //    if (selaStr.Contains("立享"))
+                                //    {
+                                //        selaStr = selaStr.Replace("立享", "");
+                                //        info.Sela = Convert.ToDecimal(selaStr);
+
+                                //    }
+                                //    else if (selaStr.Contains("最高返"))
+                                //    {
+                                //        selaStr = CommonFun.GetValue(selaStr, "最高返", "元");
+                                //        info.ReturnPrice = Convert.ToDecimal(selaStr);
+                                //    }
+                                //    else
+                                //    {
+                                //        info.Remark = selaStr;
+                                //    }
+                                //}
+                                //else
+                                //{
+                                selaStr = CommonFun.GetValue(m.Value, "返现", "元");
+
                                 if (!string.IsNullOrEmpty(selaStr))
                                 {
-                                    if (selaStr.Contains("立享"))
-                                    {
-                                        selaStr = selaStr.Replace("立享", "");
-                                        info.Sela = Convert.ToDecimal(selaStr);
-
-                                    }
-                                    else if (selaStr.Contains("最高返"))
-                                    {
-                                        selaStr = CommonFun.GetValue(selaStr, "最高返", "元");
-                                        info.ReturnPrice = Convert.ToDecimal(selaStr);
-                                    }
-                                    else
-                                    {
-                                        info.Remark = selaStr;
-                                    }
+                                    info.ReturnPrice = Convert.ToDecimal(selaStr);
                                 }
-                                else
-                                {
-                                    selaStr = CommonFun.GetValue(m.Value, "返现", "元");
-
-                                    if (!string.IsNullOrEmpty(selaStr))
-                                    {
-                                        info.ReturnPrice = Convert.ToDecimal(selaStr);
-                                    }
-                                }
+                                //}
 
                                 info.ShopPrice = string.IsNullOrEmpty(priceStr) ? 0 : Convert.ToDecimal(priceStr);
                                 info.ShopSelaPrice = CommonFun.TrunCate(info.ShopPrice * (info.Sela / 10) - info.ReturnPrice);
@@ -781,11 +781,11 @@ namespace GetWebPageDate.Util
 
         public override void Login()
         {
-            string login_url = "https://reg.yaofangwang.com/login.aspx";
-            string postDataStr = string.Format("__EVENTTARGET=ctl00%24ContentPlaceHolder1%24t_login&__EVENTARGUMENT=&__VIEWSTATE=%2FwEPDwUINDE0MjQ5NzVkGAEFHl9fQ29udHJvbHNSZXF1aXJlUG9zdEJhY2tLZXlfXxYBBSVjdGwwMCRDb250ZW50UGxhY2VIb2xkZXIxJGNiX1JlbWVtYmVyfMPsdmjZlfvGbCxOD8u0r%2FRLbA8%3D&__VIEWSTATEGENERATOR=C2EE9ABB&__EVENTVALIDATION=%2FwEdAAosVaXMhV4q7s19NxAQU1EA%2FX3Fo%2FRaqYiLtErA%2B0XLEhccBLe9MIf%2BOeu1SwHT%2Fo2ng0PqTUAPaPYHk4tr%2FTPfKqmCwJguV16MgvgQAIOIM5gCICnqqodEefzHnITuNvGKN2iu4q6IDCzyu2cVK%2B2X9v9Eq8t4s5ZZ5SNoKNrRyao0KorV0rlA31R%2FnAfLx9YONrIXtTlQ%2FOFtaven3EmBxJNqndFqhuABr6rHIEGR90USvzc%3D&ctl00%24ContentPlaceHolder1%24txt_AccountName={0}&ctl00%24ContentPlaceHolder1%24txt_Password={1}&ctl00%24ContentPlaceHolder1%24txt_ValidateCode=&ctl00%24ContentPlaceHolder1%24txt_Mobile=&ctl00%24ContentPlaceHolder1%24txt_ValidateCode1=&ctl00%24ContentPlaceHolder1%24txtMobileCode=&ctl00%24ContentPlaceHolder1%24hf_type=default", username, password);
+            //string login_url = "https://reg.yaofangwang.com/login.aspx";
+            //string postDataStr = string.Format("__EVENTTARGET=ctl00%24ContentPlaceHolder1%24t_login&__EVENTARGUMENT=&__VIEWSTATE=%2FwEPDwUINDE0MjQ5NzVkGAEFHl9fQ29udHJvbHNSZXF1aXJlUG9zdEJhY2tLZXlfXxYBBSVjdGwwMCRDb250ZW50UGxhY2VIb2xkZXIxJGNiX1JlbWVtYmVyfMPsdmjZlfvGbCxOD8u0r%2FRLbA8%3D&__VIEWSTATEGENERATOR=C2EE9ABB&__EVENTVALIDATION=%2FwEdAAosVaXMhV4q7s19NxAQU1EA%2FX3Fo%2FRaqYiLtErA%2B0XLEhccBLe9MIf%2BOeu1SwHT%2Fo2ng0PqTUAPaPYHk4tr%2FTPfKqmCwJguV16MgvgQAIOIM5gCICnqqodEefzHnITuNvGKN2iu4q6IDCzyu2cVK%2B2X9v9Eq8t4s5ZZ5SNoKNrRyao0KorV0rlA31R%2FnAfLx9YONrIXtTlQ%2FOFtaven3EmBxJNqndFqhuABr6rHIEGR90USvzc%3D&ctl00%24ContentPlaceHolder1%24txt_AccountName={0}&ctl00%24ContentPlaceHolder1%24txt_Password={1}&ctl00%24ContentPlaceHolder1%24txt_ValidateCode=&ctl00%24ContentPlaceHolder1%24txt_Mobile=&ctl00%24ContentPlaceHolder1%24txt_ValidateCode1=&ctl00%24ContentPlaceHolder1%24txtMobileCode=&ctl00%24ContentPlaceHolder1%24hf_type=default", username, password);
 
-            request.Login(login_url, postDataStr);
-
+            //request.Login(login_url, postDataStr);
+            Login(2);
             //SeachInfoByID("国药准字Z20090367");
         }
 
@@ -1732,9 +1732,11 @@ namespace GetWebPageDate.Util
                     item.Name = CommonFun.GetValue(iMs[0].Value, "title=\"", "\">");
                     item.ID = CommonFun.GetValue(iMs[1].Value, "title=\"", "\">");
                     item.Format = CommonFun.GetValue(iMs[2].Value, "title=\"", "\">");
+                    item.Format = string.IsNullOrEmpty(item.Format) ? CommonFun.GetValue(iMs[2].Value, "title=\"\">", "<") : item.Format;
+                    item.Format = item.Format.Trim();
                     item.Created = iMs[4].Value.Trim();
                     string priceStr = CommonFun.GetValue(m.Value, "<div par='price'>", "</div>");
-                    priceStr = CommonFun.GetValue(priceStr, "¥", "<");
+                    priceStr = string.IsNullOrEmpty(priceStr) ? CommonFun.GetValue(m.Value, "¥", "<") : CommonFun.GetValue(priceStr, "¥", "<");
                     item.ShopPrice = string.IsNullOrEmpty(priceStr) ? 0 : Convert.ToDecimal(priceStr);
                     item.Inventory = CommonFun.GetValue(m.Value, "<div>库存", "件");
                     item.Inventory = item.Inventory.Trim();
@@ -1882,18 +1884,17 @@ namespace GetWebPageDate.Util
             {
                 Dictionary<string, BaseItemInfo> items = new Dictionary<string, BaseItemInfo>();
                 BaseItemInfo item = new BaseItemInfo();
-                item.ID = "国药准字H20061246";
-                item.ViewCount = "2461435";
-                item.Format = "0.25gx10片/瓶";
-                item.Name = "头孢丙烯片";
-                item.Created = "扬子江药业集团有限公司";
-                item.Type = "2017";
-                item.Inventory = "127";
-                item.ItemName = "196329";
+                item.ID = "国药准字Z20080183";
+                item.ViewCount = "16323772";
+                item.Format = "10mlx6支/盒";
+                item.Name = "参仙升脉口服液";
+                item.Created = "山东步长制药股份有限公司";
+                item.Type = "2019";
+                item.Inventory = "17";
+                item.ItemName = "552603";
                 items.Add("", item);
                 return items;
             }
-
 
             return GetItemsByStatus(1);
         }
@@ -1912,7 +1913,7 @@ namespace GetWebPageDate.Util
             {
                 try
                 {
-                    string url = string.Format("http://yaodian.yaofangwang.com/product/list/?Status={1}&page={0}", page, status);
+                    string url = string.Format("https://yaodian.yaofangwang.com/product/list/?Status={1}&page={0}", page, status);
 
                     //Dictionary<string, string> heads = new Dictionary<string,string>();
                     //heads.Add("Upgrade-Insecure-Requests", "1");

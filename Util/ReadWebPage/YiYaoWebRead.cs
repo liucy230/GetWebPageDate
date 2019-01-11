@@ -44,7 +44,7 @@ namespace GetWebPageDate.Util.ReadWebPage
 
         private string username;
 
-        private List<string> testId = new List<string>() { "国药准字H20055465", "国药准字Z10920030"};
+        private List<string> testId = new List<string>() { "国药准字H20055465", "国药准字Z10920030" };
 
         public YiYaoWebRead()
         {
@@ -356,7 +356,35 @@ namespace GetWebPageDate.Util.ReadWebPage
 
                         Dictionary<string, BaseItemInfo> yyReadyPublishItems = GetReadyPublishItems();
 
-                        Dictionary<string, BaseItemInfo> downItems = RemoveHistoryItem(yfSellingItems, yfHistoryItems);
+                        Dictionary<string, BaseItemInfo> downItems = new Dictionary<string, BaseItemInfo>();
+                        if (yfHistoryItems == null || yfHistoryItems.Count == 0)
+                        {
+                            foreach (BaseItemInfo item in yySellingItems.Values)
+                            {
+                                bool isIn = false;
+                                foreach (BaseItemInfo yfItem in yfSellingItems.Values)
+                                {
+                                    if (CommonFun.IsSameItem(item.ID, yfItem.ID, item.Format, yfItem.Format, item.Name, yfItem.Name))
+                                    {
+                                        isIn = true;
+                                        break;
+                                    }
+                                }
+
+                                if (!isIn)
+                                {
+                                    DownItem(item);
+                                    CommonFun.WriteCSV(fileName + "down" + ticks + fileExtendName, item);
+                                    CommonFun.WriteCSV(fileName + "/RemoveHistory" + ticks + fileExtendName, item);
+                                }
+                            }
+                        }
+                        else
+                        {
+                            downItems = RemoveHistoryItem(yfSellingItems, yfHistoryItems);
+                        }
+
+
 
                         //下架
                         int count = 0;
@@ -392,7 +420,7 @@ namespace GetWebPageDate.Util.ReadWebPage
                                     if (CommonFun.IsSameItem(item.ID, yfItem.ID, item.Format, yfItem.Format, item.Name, yfItem.Name))
                                     {
                                         isSelling = true;
-                                        if(yfItem.Inventory == "0")
+                                        if (yfItem.Inventory == "0")
                                         {
                                             DownItem(item);
                                             CommonFun.WriteCSV(fileName + "zeroStockDown" + ticks + fileExtendName, item);
@@ -909,15 +937,15 @@ namespace GetWebPageDate.Util.ReadWebPage
                 itemStr = CommonFun.GetValue(content, "<div class=\"goods_choose_mainGoods\" id=\"mainGoodsDivId\">", "<div id=\"storeSchemeProvinceDiv\" class=\"storeSchemeProvinceDiv\"  style=\"display:none;\">");
 
 
-                 MatchCollection pMs = CommonFun.GetValues(itemStr,"<div", "</div>");
+                MatchCollection pMs = CommonFun.GetValues(itemStr, "<div", "</div>");
 
-                 string priceStr = CommonFun.GetValue(pMs[0].Value, "value=\"", "\"");
+                string priceStr = CommonFun.GetValue(pMs[0].Value, "value=\"", "\"");
 
-                 item.ShopPrice = string.IsNullOrEmpty(priceStr) ? 0 : Convert.ToDecimal(priceStr);
+                item.ShopPrice = string.IsNullOrEmpty(priceStr) ? 0 : Convert.ToDecimal(priceStr);
 
-                 priceStr = CommonFun.GetValue(pMs[1].Value, "value=\"", "\"");
+                priceStr = CommonFun.GetValue(pMs[1].Value, "value=\"", "\"");
 
-                 item.ShopSelaPrice = string.IsNullOrEmpty(priceStr) ? 0 : Convert.ToDecimal(priceStr);
+                item.ShopSelaPrice = string.IsNullOrEmpty(priceStr) ? 0 : Convert.ToDecimal(priceStr);
             }
             catch (Exception ex)
             {

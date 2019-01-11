@@ -30,7 +30,7 @@ namespace GetWebPageDate
                 ReadPlatFormWebPageValue readPlatform = new ReadPlatFormWebPageValue();
                 //readPlatform.Test();
                 //readPlatform.Start();
-                readPlatform.UpdatePrice();
+                //readPlatform.UpdatePrice();
                 //readPlatform.OptOrder();
                 //readPlatform.OptWaitingSend();
                 #endregion
@@ -82,7 +82,7 @@ namespace GetWebPageDate
                 //yiYaoread.DownDoubleItems();
                 //yiYaoread.SyncYFItems();
                 //yiYaoread.GetSellingItem("1601910842", DateTime.Now);
-                //yiYaoread.Start();
+                yiYaoread.Start();
                 //yiYaoread.GetOrderDetail();
                 //yiYaoread.UpdatePrice();
                 //yiYaoread.Test();

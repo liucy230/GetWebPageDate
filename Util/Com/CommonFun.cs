@@ -129,7 +129,10 @@ namespace GetWebPageDate.Util
                 foreach (DataRow dr in dt.Rows)//检查是否有信息表
                 {
                     if (dr["TABLE_NAME"].ToString() == sheetName + "$")//要加个$号
+                    {
                         existTable = true;
+                        break;
+                    }
                 }
 
                 if (!existTable)
@@ -167,6 +170,7 @@ namespace GetWebPageDate.Util
 
             if (connection != null)
             {
+                connection.Close();
                 connection.Dispose();
             }
 
@@ -200,7 +204,7 @@ namespace GetWebPageDate.Util
 
                 connection.Open();
 
-                string updateStr = string.Format("UPDATE [%s$] SET ", sheetName);
+                string updateStr = string.Format("UPDATE [{0}$] SET ", sheetName);
 
                 for (int i = 0; i < key.Length; i++)
                 {
@@ -217,7 +221,7 @@ namespace GetWebPageDate.Util
 
                 int row = com.ExecuteNonQuery();
 
-                connection.Close();
+                //connection.Close();
 
                 return row > 0;
             }
@@ -229,6 +233,7 @@ namespace GetWebPageDate.Util
             if (connection != null)
             {
                 connection.Close();
+                connection.Dispose();
             }
             return false;
         }

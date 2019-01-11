@@ -357,6 +357,8 @@ namespace GetWebPageDate.Util.ReadWebPage
                         Dictionary<string, BaseItemInfo> yyReadyPublishItems = GetReadyPublishItems();
 
                         Dictionary<string, BaseItemInfo> downItems = new Dictionary<string, BaseItemInfo>();
+                        //下架
+                        int count = 0;
                         if (yfHistoryItems == null || yfHistoryItems.Count == 0)
                         {
                             foreach (BaseItemInfo item in yySellingItems.Values)
@@ -382,22 +384,17 @@ namespace GetWebPageDate.Util.ReadWebPage
                         else
                         {
                             downItems = RemoveHistoryItem(yfSellingItems, yfHistoryItems);
-                        }
-
-
-
-                        //下架
-                        int count = 0;
-                        foreach (KeyValuePair<string, BaseItemInfo> downValue in downItems)
-                        {
-                            Console.WriteLine("{0} down item totalCount:{1} curCount:{2}", DateTime.Now, downItems.Count, ++count);
-                            BaseItemInfo downItem = downValue.Value;
-                            foreach (BaseItemInfo item in yySellingItems.Values)
+                            foreach (KeyValuePair<string, BaseItemInfo> downValue in downItems)
                             {
-                                if (CommonFun.IsSameItem(downItem.ID, item.ID, downItem.Format, item.Format, downItem.Name, item.Name))
+                                Console.WriteLine("{0} down item totalCount:{1} curCount:{2}", DateTime.Now, downItems.Count, ++count);
+                                BaseItemInfo downItem = downValue.Value;
+                                foreach (BaseItemInfo item in yySellingItems.Values)
                                 {
-                                    DownItem(item);
-                                    CommonFun.WriteCSV(fileName + "down" + ticks + fileExtendName, item);
+                                    if (CommonFun.IsSameItem(downItem.ID, item.ID, downItem.Format, item.Format, downItem.Name, item.Name))
+                                    {
+                                        DownItem(item);
+                                        CommonFun.WriteCSV(fileName + "down" + ticks + fileExtendName, item);
+                                    }
                                 }
                             }
                         }

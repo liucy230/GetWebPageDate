@@ -228,6 +228,10 @@ namespace GetWebPageDate.Http
                     {
                         request.UserAgent = head.Value;
                     }
+                    else if (head.Key == "Accept")
+                    {
+                        request.Accept = head.Value;
+                    }
                     else
                     {
                         request.Headers.Add(head.Key, head.Value);
@@ -400,7 +404,7 @@ namespace GetWebPageDate.Http
                         sleepTime = 30 * 1000;
                     }
                     Thread.Sleep(sleepTime);
-                    if (ex.ToString().Contains("404"))
+                    if (ex.ToString().Contains("404") || ex.ToString().Contains("(500)"))
                     {
                         return "";
                     }
@@ -454,63 +458,6 @@ namespace GetWebPageDate.Http
                 return HttpGetPicture(url);
             }
         }
-
-        public string HttpGetPlatform(string url)
-        {
-            do
-            {
-                try
-                {
-                    // string platformCookie = "__jsluid=e6b4a4a0ada8311a314c61296436218d; UM_distinctid=15d3f14bef16b9-0deb7c5e344e91-333f5902-1fa400-15d3f14bef2e60; ASP.NET_SessionId=3zela4n0kxujjtk4t4bzy3rv; isContact=0; HistoryMedicine=4618674; hotkeywords=%E6%8B%9C%E5%94%90%E8%8B%B9%23%231%23%23med%23%23%24%23%23medicine-188444.html%23%23%24%40%40%E8%A1%A5%E8%A1%80%23%231%23%23wwwsearch%23%23%24%23%23search.html%23%23keyword%3D%25e8%25a1%25a5%25e8%25a1%2580%40%40999%23%230%23%23other_http%3A%2F%2Fwww.yaofangwang.com%2Fsearch%2F13791.html%40%40%E7%89%87%E4%BB%94%E7%99%80%23%231%23%23other_http%3A%2F%2Fwww.yaofangwang.com%2Fsearch%2F39735.html%40%40%E5%A6%88%E5%AF%8C%E9%9A%86%23%230%23%23wwwsearch%23%23%24%23%23search.html%23%23keyword%3D%25e5%25a6%2588%25e5%25af%258c%25e9%259a%2586%40%40%E9%98%BF%E8%83%B6%23%231%23%23other_http%3A%2F%2Fwww.yaofangwang.com%2Fsearch%2F11442.html%40%40%E9%87%91%E6%88%88%23%230%23%23other_http%3A%2F%2Fwww.yaofangwang.com%2Fsearch%2F30642.html%40%40%E6%B1%A4%E8%87%A3%E5%80%8D%E5%81%A5%23%230%23%23other_http%3A%2F%2Fwww.yaofangwang.com%2Fsearch%2F50493.html; bottomApp_close=1; cartcount=0; subcatalogflag=1; historysearch=%E8%BE%BE%E5%96%9C%20%E9%93%9D%E7%A2%B3%E9%85%B8%E9%95%81%E7%89%87%20-%20%E6%8B%9C%E8%80%B3%E5%8C%BB%E8%8D%AF%7C%7C%E5%90%97%E4%B8%81%E5%95%89%20%E5%A4%9A%E6%BD%98%E7%AB%8B%E9%85%AE%E7%89%87%20-%20%E8%A5%BF%E5%AE%89%E6%9D%A8%E6%A3%AE%7C%7C999%20%E4%B8%89%E4%B9%9D%E8%83%83%E6%B3%B0%E9%A2%97%E7%B2%92%20-%20%E5%8D%8E%E6%B6%A6%E4%B8%89%E4%B9%9D%7C%7C%E8%83%83%E8%82%A0%E7%94%A8%E8%8D%AF%7C%7C%E4%B8%AD%E8%A5%BF%E8%8D%AF%E5%93%81%7C%7CZ43020350%7C%7CZ43020350%2050*50%7C%7C; topnavflag=1; CNZZDATA1261831897=1674121359-1499998668-%7C1500036473; Hm_lvt_e5f454eb1aa8e839f8845470af4667eb=1500001911; Hm_lpvt_e5f454eb1aa8e839f8845470af4667eb=1500040568";
-
-                    HttpWebRequest request = (HttpWebRequest)WebRequest.Create(url);
-
-                    request.ContentType = "text/html;charset=UTF-8";
-                    request.Method = "GET";
-                    request.UserAgent = "Mozilla/5.0 (Windows NT 6.1; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/59.0.3071.115 Safari/537.36";
-                    request.KeepAlive = true;
-                    //request.Accept = "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8";
-                    //request.Referer = "http://www.yaofangwang.com";
-                    //request.Headers.Add("Accept-Encoding", "gzip, deflate");
-                    //request.Headers.Add("Accept-Language", "zh-CN,zh;q=0.8");
-                    //request.Headers.Add("Accept-Charset", "GBK,utf-8;q=0.7,*;q=0.3");
-                    if (cookieContainer != null)
-                    {
-                        request.CookieContainer = cookieContainer;
-                    }
-                    else
-                    {
-                        request.Headers.Add("Cookie", cookie);
-                    }
-                    //request.Headers.Add("Host", "www.hyey.cn");
-                    //request.CookieContainer = myCookieContainer;
-
-
-                    HttpWebResponse response = (HttpWebResponse)request.GetResponse();
-                    Stream myResponseStream = response.GetResponseStream();
-
-                    StreamReader myStreamReader = new StreamReader(myResponseStream, Encoding.GetEncoding("utf-8"));
-                    string retString = myStreamReader.ReadToEnd();
-                    myStreamReader.Close();
-                    myResponseStream.Close();
-
-                    return retString;
-                }
-                catch (Exception ex)
-                {
-                    Console.WriteLine("url:{0}, error:{1}", url, ex);
-                    int sleepTime = 5 * 1000;
-                    if (ex.ToString().Contains("无法连接"))
-                    {
-                        sleepTime = 30 * 1000;
-                    }
-                    Thread.Sleep(sleepTime);
-                    if (ex.ToString().Contains("404") || ex.ToString().Contains("500"))
-                    {
-                        return "";
-                    }
-                }
-            } while (true);
-        }
+               
     }
 }

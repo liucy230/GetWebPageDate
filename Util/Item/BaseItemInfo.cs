@@ -61,6 +61,7 @@ namespace GetWebPageDate.Util.Item
         /// 最高返利
         /// </summary>
         public decimal ReturnPrice { get; set; }
+
         /// <summary>
         /// 剂型
         /// </summary>

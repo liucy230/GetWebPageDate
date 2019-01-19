@@ -344,13 +344,13 @@ namespace GetWebPageDate.Util.ReadWebPage
                     {
                         Login();
 
-                        Dictionary<string, BaseItemInfo> yfHistoryItems = ReadHistoryItems();
+                        Dictionary<string, BaseItemInfo> yfHistoryItems = new Dictionary<string, BaseItemInfo>();// ReadHistoryItems();
 
                         ReadPlatFormWebPageValue yf = new ReadPlatFormWebPageValue();
                         yf.Login(2);
                         Dictionary<string, BaseItemInfo> yfSellingItems = yf.GetSellingItems(isTest);
 
-                        Dictionary<string, BaseItemInfo> yySellingItems = GetSellingItems();
+                        Dictionary<string, BaseItemInfo> yySellingItems = GetSellingItems(isTest);
 
                         Dictionary<string, BaseItemInfo> yyStorehouseItems = GetStorehouseItems();
 
@@ -359,45 +359,52 @@ namespace GetWebPageDate.Util.ReadWebPage
                         Dictionary<string, BaseItemInfo> downItems = new Dictionary<string, BaseItemInfo>();
                         //下架
                         int count = 0;
-                        if (yfHistoryItems == null || yfHistoryItems.Count == 0)
+                        //if (yfHistoryItems == null || yfHistoryItems.Count == 0)
+                        //{
+                        if (yfSellingItems.Count == 0 )
                         {
-                            foreach (BaseItemInfo item in yySellingItems.Values)
-                            {
-                                bool isIn = false;
-                                foreach (BaseItemInfo yfItem in yfSellingItems.Values)
-                                {
-                                    if (CommonFun.IsSameItem(item.ID, yfItem.ID, item.Format, yfItem.Format, item.Name, yfItem.Name))
-                                    {
-                                        isIn = true;
-                                        break;
-                                    }
-                                }
+                            Console.WriteLine("yy count is zero ............................");
+                            Thread.Sleep(10 * 1000);
+                            break;
+                        }
 
-                                if (!isIn)
-                                {
-                                    DownItem(item);
-                                    CommonFun.WriteCSV(fileName + "down" + ticks + fileExtendName, item);
-                                    CommonFun.WriteCSV(fileName + "/RemoveHistory" + ticks + fileExtendName, item);
-                                }
-                            }
-                        }
-                        else
+                        foreach (BaseItemInfo item in yySellingItems.Values)
                         {
-                            downItems = RemoveHistoryItem(yfSellingItems, yfHistoryItems);
-                            foreach (KeyValuePair<string, BaseItemInfo> downValue in downItems)
+                            bool isIn = false;
+                            foreach (BaseItemInfo yfItem in yfSellingItems.Values)
                             {
-                                Console.WriteLine("{0} down item totalCount:{1} curCount:{2}", DateTime.Now, downItems.Count, ++count);
-                                BaseItemInfo downItem = downValue.Value;
-                                foreach (BaseItemInfo item in yySellingItems.Values)
+                                if (CommonFun.IsSameItem(item.ID, yfItem.ID, item.Format, yfItem.Format, item.Name, yfItem.Name))
                                 {
-                                    if (CommonFun.IsSameItem(downItem.ID, item.ID, downItem.Format, item.Format, downItem.Name, item.Name))
-                                    {
-                                        DownItem(item);
-                                        CommonFun.WriteCSV(fileName + "down" + ticks + fileExtendName, item);
-                                    }
+                                    isIn = true;
+                                    break;
                                 }
                             }
+
+                            if (!isIn)
+                            {
+                                DownItem(item);
+                                CommonFun.WriteCSV(fileName + "down" + ticks + fileExtendName, item);
+                                //CommonFun.WriteCSV(fileName + "/RemoveHistory" + ticks + fileExtendName, item);
+                            }
                         }
+                        //}
+                        //else
+                        //{
+                        //    downItems = RemoveHistoryItem(yfSellingItems, yfHistoryItems);
+                        //    foreach (KeyValuePair<string, BaseItemInfo> downValue in downItems)
+                        //    {
+                        //        Console.WriteLine("{0} down item totalCount:{1} curCount:{2}", DateTime.Now, downItems.Count, ++count);
+                        //        BaseItemInfo downItem = downValue.Value;
+                        //        foreach (BaseItemInfo item in yySellingItems.Values)
+                        //        {
+                        //            if (CommonFun.IsSameItem(downItem.ID, item.ID, downItem.Format, item.Format, downItem.Name, item.Name))
+                        //            {
+                        //                DownItem(item);
+                        //                CommonFun.WriteCSV(fileName + "down" + ticks + fileExtendName, item);
+                        //            }
+                        //        }
+                        //    }
+                        //}
 
                         count = 0;
                         foreach (KeyValuePair<string, BaseItemInfo> value in yfSellingItems)
@@ -441,7 +448,7 @@ namespace GetWebPageDate.Util.ReadWebPage
                                                 //UpdateStock(item.ViewCount, historyCountStr);
                                                 UpdatePirceAndQuantity(item.ViewCount, null, null, historyCountStr);
                                                 yfHistoryItems[value.Key].Inventory = historyCountStr;
-                                                UpdateHistoryStock(yfHistoryItems[value.Key]);
+                                                //UpdateHistoryStock(yfHistoryItems[value.Key]);
                                                 item.Inventory = historyCountStr;
                                                 yf.UpdateItemInfo(item);
                                                 CommonFun.WriteCSV(fileName + "change_stock" + ticks + fileExtendName, yfItem);
@@ -459,7 +466,7 @@ namespace GetWebPageDate.Util.ReadWebPage
                                             yfHistoryItems.Add(value.Key, yfItem);
                                             UpdatePirceAndQuantity(item.ViewCount, null, null, yfItem.Inventory);
                                             //UpdateStock(item.ViewCount, yfItem.Inventory);
-                                            AddHistoryStock(yfItem);
+                                            //AddHistoryStock(yfItem);
                                         }
 
                                         break;
@@ -475,12 +482,14 @@ namespace GetWebPageDate.Util.ReadWebPage
                                     {
                                         if (CommonFun.IsSameItem(item.ID, yfItem.ID, item.Format, yfItem.Format, item.Name, yfItem.Name))
                                         {
+                                            isInStorehouse = true;
+
                                             if (IsDownTime() && IsInAutoUpDownTypeList((item as ItemInfo).Use))
                                             {
                                                 break;
                                             }
                                             //重新上架 TODO
-                                            isInStorehouse = true;
+
                                             item.Inventory = yfItem.Inventory;
                                             if (!isTest)
                                             {
@@ -491,12 +500,12 @@ namespace GetWebPageDate.Util.ReadWebPage
                                                     if (yfHistoryItems.ContainsKey(value.Key))
                                                     {
                                                         yfHistoryItems[value.Key].Inventory = yfItem.Inventory;
-                                                        UpdateHistoryStock(yfHistoryItems[value.Key]);
+                                                        //UpdateHistoryStock(yfHistoryItems[value.Key]);
                                                     }
                                                     else
                                                     {
                                                         yfHistoryItems.Add(value.Key, yfItem);
-                                                        AddHistoryStock(yfItem);
+                                                        //AddHistoryStock(yfItem);
                                                     }
                                                 }
                                             }
@@ -1146,8 +1155,23 @@ namespace GetWebPageDate.Util.ReadWebPage
         /// 获取在售列表
         /// </summary>
         /// <returns></returns>
-        public Dictionary<string, BaseItemInfo> GetSellingItems()
+        public Dictionary<string, BaseItemInfo> GetSellingItems(bool isTest = false)
         {
+            if (isTest)
+            {
+                Dictionary<string, BaseItemInfo> items = new Dictionary<string, BaseItemInfo>();
+                BaseItemInfo item = new BaseItemInfo();
+                item.ID = "H20160414";
+                item.ViewCount = "16323772";
+                item.Format = "50mg*20片";
+                item.Name = "为力苏 盐酸伊托必利片 50mg*20片";
+                item.Created = "MYLANEPDG.K.,KATSUYAMAPLANT";
+                item.Type = "2019";
+                item.Inventory = "8";
+                item.ItemName = "552603";
+                items.Add("", item);
+                return items;
+            }
             return GetItemsByTagInx(2);
             //Dictionary<string, BaseItemInfo> dic = new Dictionary<string, BaseItemInfo>();
             //Dictionary<string, string> itemInfo = new Dictionary<string, string>();

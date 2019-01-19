@@ -94,7 +94,7 @@ namespace GetWebPageDate.Util
 
         public override void ReadAllMenuURL()
         {
-            string content = request.HttpGetPlatform("https://www.yaofangwang.com/Catalog-1.html");
+            string content = userRequest.HttpGet("https://www.yaofangwang.com/Catalog-1.html", null, true);
 
             content = CommonFun.GetValue(content, "<div id=\"wrap\">", "<div class=\"block clearfix lazyload\">");
 
@@ -137,7 +137,7 @@ namespace GetWebPageDate.Util
                 {
                     count++;
 
-                    string content = request.HttpGetPlatform("https://www.yaofangwang.com/" + url);
+                    string content = userRequest.HttpGet("https://www.yaofangwang.com/" + url, null, true);
 
                     List<string> temp = GetItemName(content);
 
@@ -163,7 +163,7 @@ namespace GetWebPageDate.Util
 
                             for (int i = 2; i <= pageCount; i++)
                             {
-                                content = request.HttpGetPlatform("https://www.yaofangwang.com/" + url.Substring(0, url.IndexOf(".")) + "-p" + i + ".html");
+                                content = userRequest.HttpGet("https://www.yaofangwang.com/" + url.Substring(0, url.IndexOf(".")) + "-p" + i + ".html", null, true);
 
                                 temp = GetItemName(content);
 
@@ -246,12 +246,94 @@ namespace GetWebPageDate.Util
 
             //0b0c7f38ba29bf6507e01d8ab79dc0e0
             //22b8d1f3e5f05084b3dcfe38dbbd5a43
-            string content = request.HttpGetPlatform(urlSeach);
+            string content = userRequest.HttpGet(urlSeach, null, true);
             //获取商品信息url
             string itemInfo = "https://open.yaofangwang.com/app_gateway.ashx?market=huawei&app_key=4fb44b67d0be2af36f7135586d38d658&account_id=1441303&os=android&app_version=2.9.6&service=get_goods_detail&latitude=0.0&id=571177&timestamp=2018-04-17+17%3A16%3A28&longitude=0.0&sign=29f140ad5a407d7ca29a729caf016a7d";
 
             //获取商家列表url
             string shopList = "https://open.yaofangwang.com/app_gateway.ashx?os=android&app_version=2.9.6&latitude=0.0&orderby=priceasc&market=huawei&account_id=1441303&app_key=4fb44b67d0be2af36f7135586d38d658&service=get_goods_shop&page_index=1&region_name=%E5%85%A8%E5%9B%BD&id=571177&timestamp=2018-04-17+17%3A20%3A53&longitude=0.0&sign=b62cddd38efa3d1cfbe3d9898f89ec67";
+        }
+
+        private BaseItemInfo GetItemInfo(string content, int inventoryMin, bool isChangeMin = false)
+        {
+            try
+            {
+                string sellerCount = CommonFun.GetValue(content, "class=\"cur\">", "个零售商家报价");
+
+                if (sellerCount == "1")
+                {
+                    inventoryMin = isChangeMin ? 50 : inventoryMin;
+                    Console.WriteLine("sellerCount :{0}", sellerCount);
+                }
+
+                string itemlist = CommonFun.GetValue(content, "<ul class=\"slist\">", "</ul>");
+
+                MatchCollection ms = CommonFun.GetValues(itemlist, "<li class=\"clearfix\">", "</li>");
+
+                foreach (Match m in ms)
+                {
+                    string inventoryStr = CommonFun.GetValue(m.Value, "<label class=\"sreserve\">", "</label>");
+                    string priceStr = CommonFun.GetValue(m.Value, "¥", "<");
+                    priceStr = priceStr.Trim();
+                    string storeName = CommonFun.GetValue(m.Value, "<div class=\"shop\">", "</div>");
+                    storeName = CommonFun.GetValue(storeName, "title=\"", "\"");
+                    if (!string.IsNullOrEmpty(inventoryStr) && !string.IsNullOrEmpty(priceStr) && !IsBlacklistStore(storeName) && storeName != selfName)
+                    {
+                        if (Convert.ToInt32(inventoryStr) > inventoryMin)
+                        {
+                            BaseItemInfo info = new BaseItemInfo();
+
+                            info.Sela = 10;
+
+                            //if (!string.IsNullOrEmpty(selaStr))
+                            //{
+                            //    if (selaStr.Contains("立享"))
+                            //    {
+                            //        selaStr = selaStr.Replace("立享", "");
+                            //        info.Sela = Convert.ToDecimal(selaStr);
+
+                            //    }
+                            //    else if (selaStr.Contains("最高返"))
+                            //    {
+                            //        selaStr = CommonFun.GetValue(selaStr, "最高返", "元");
+                            //        info.ReturnPrice = Convert.ToDecimal(selaStr);
+                            //    }
+                            //    else
+                            //    {
+                            //        info.Remark = selaStr;
+                            //    }
+                            //}
+                            //else
+                            //{
+                            string selaStr = CommonFun.GetValue(m.Value, "返现", "元");
+
+                            if (!string.IsNullOrEmpty(selaStr))
+                            {
+                                info.ReturnPrice = Convert.ToDecimal(selaStr);
+                            }
+                            //}
+
+                            info.ShopPrice = string.IsNullOrEmpty(priceStr) ? 0 : Convert.ToDecimal(priceStr);
+                            info.ShopSelaPrice = CommonFun.TrunCate(info.ShopPrice * (info.Sela / 10) - info.ReturnPrice);
+                            info.Inventory = inventoryStr;
+                            // SetMenuInfo(info, content);
+
+                            SetPriceInfo(info, content);
+
+                            return info;
+                        }
+                    }
+                    else if (content.Contains("安装APP查看价格"))
+                    {
+                        Login(2);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex);
+            }
+            return null;
         }
 
         public decimal GetMinPrice(BaseItemInfo item, int inventoryMin)
@@ -278,76 +360,11 @@ namespace GetWebPageDate.Util
                         content = userRequest.HttpGet(prevUrl, null, true);
                     }
 
-                    string sellerCount = CommonFun.GetValue(content, "class=\"cur\">", "个零售商家报价");
+                    BaseItemInfo rItem = GetItemInfo(content, inventoryMin);
 
-                    if (sellerCount == "1")
+                    if (rItem != null)
                     {
-                        //inventoryMin = 50;
-                        Console.WriteLine("sellerCount :{0}", sellerCount);
-                    }
-
-                    string itemlist = CommonFun.GetValue(content, "<ul class=\"slist\">", "</ul>");
-
-                    MatchCollection ms = CommonFun.GetValues(itemlist, "<li class=\"clearfix\">", "</li>");
-
-                    foreach (Match m in ms)
-                    {
-                        string inventoryStr = CommonFun.GetValue(m.Value, "<label class=\"sreserve\">", "</label>");
-                        string priceStr = CommonFun.GetValue(m.Value, "¥", "<");
-                        priceStr = priceStr.Trim();
-                        string storeName = CommonFun.GetValue(m.Value, "<div class=\"shop\">", "</div>");
-                        storeName = CommonFun.GetValue(storeName, "title=\"", "\"");
-                        if (!string.IsNullOrEmpty(inventoryStr) && !string.IsNullOrEmpty(priceStr) && !IsBlacklistStore(storeName) && storeName != selfName)
-                        {
-                            if (Convert.ToInt32(inventoryStr) > inventoryMin)
-                            {
-                                BaseItemInfo info = new BaseItemInfo();
-
-                                info.Sela = 10;
-
-                                //if (!string.IsNullOrEmpty(selaStr))
-                                //{
-                                //    if (selaStr.Contains("立享"))
-                                //    {
-                                //        selaStr = selaStr.Replace("立享", "");
-                                //        info.Sela = Convert.ToDecimal(selaStr);
-
-                                //    }
-                                //    else if (selaStr.Contains("最高返"))
-                                //    {
-                                //        selaStr = CommonFun.GetValue(selaStr, "最高返", "元");
-                                //        info.ReturnPrice = Convert.ToDecimal(selaStr);
-                                //    }
-                                //    else
-                                //    {
-                                //        info.Remark = selaStr;
-                                //    }
-                                //}
-                                //else
-                                //{
-                                selaStr = CommonFun.GetValue(m.Value, "返现", "元");
-
-                                if (!string.IsNullOrEmpty(selaStr))
-                                {
-                                    info.ReturnPrice = Convert.ToDecimal(selaStr);
-                                }
-                                //}
-
-                                info.ShopPrice = string.IsNullOrEmpty(priceStr) ? 0 : Convert.ToDecimal(priceStr);
-                                info.ShopSelaPrice = CommonFun.TrunCate(info.ShopPrice * (info.Sela / 10) - info.ReturnPrice);
-                                info.Inventory = inventoryStr;
-                                // SetMenuInfo(info, content);
-
-                                SetPriceInfo(info, content);
-
-                                return info.ShopSelaPrice;
-                            }
-                        }
-                        else if (content.Contains("安装APP查看价格"))
-                        {
-                            Login(2);
-                            return decimal.MaxValue;
-                        }
+                        return rItem.ShopSelaPrice;
                     }
 
                     // nextStr = CommonFun.GetValue(content, "<a class=\"prev\" disabled=\"disabled\" style=\"margin-right:5px;\">", "</a>");
@@ -371,11 +388,7 @@ namespace GetWebPageDate.Util
 
                 string prevUrl = null;
 
-                string nextStr = null;
-
-                content = request.HttpGetPlatform("http:" + CommonFun.GetValue(item, "<a target=\"_blank\" href=\"", "\"") + "?sort=price&sorttype=asc");
-
-                string selaStr = CommonFun.GetValue(content, "class=\"all default_cursor fb_red mr10\">", "折");
+                content = userRequest.HttpGet("https:" + CommonFun.GetValue(item, "<a href=\"", "\"") + "?sort=price&sorttype=asc", null, true);
 
                 do
                 {
@@ -386,93 +399,31 @@ namespace GetWebPageDate.Util
                         {
                             prevUrl += "?sort=price&sorttype=asc";
                         }
-                        content = request.HttpGetPlatform(prevUrl);
+                        content = userRequest.HttpGet(prevUrl, null, true);
                     }
 
-                    string sellerCount = CommonFun.GetValue(content, "class=\"cur\">", "个零售商家报价");
+                    BaseItemInfo rItem = GetItemInfo(content, inventoryMin, true);
 
-                    if (sellerCount == "1")
+                    if (rItem != null)
                     {
-                        inventoryMin = 50;
-                        Console.WriteLine("sellerCount :{0}", sellerCount);
-                    }
+                        rItem.Format = CommonFun.GetValue(item, "规格：", "<");
 
-                    string itemlist = CommonFun.GetValue(content, "<ul class=\"slist\">", "</ul>");
+                        rItem.Created = CommonFun.GetValue(item, "生产厂家：", "<");
 
-                    MatchCollection ms = CommonFun.GetValues(itemlist, "<li class=\"clearfix\">", "</li>");
-
-                    foreach (Match m in ms)
-                    {
-                        string inventoryStr = CommonFun.GetValue(m.Value, "<label class=\"sreserve\">", "</label>");
-                        string priceStr = CommonFun.GetValue(m.Value, "¥", "<");
-                        string storeName = CommonFun.GetValue(m.Value, "主页\">", "</a>");
-                        if (!string.IsNullOrEmpty(inventoryStr) && !string.IsNullOrEmpty(priceStr) && !IsBlacklistStore(storeName))
-                        {
-                            if (Convert.ToInt32(inventoryStr) > inventoryMin)
-                            {
-                                BaseItemInfo info = new BaseItemInfo();
-
-                                info.Format = CommonFun.GetValue(item, "规格：", "<");
-
-                                info.Created = CommonFun.GetValue(item, "生产厂家：", "<");
-
-                                info.ID = CommonFun.GetValue(item, "批准文号：", "<");
-
-                                info.Sela = 10;
-
-                                if (!string.IsNullOrEmpty(selaStr))
-                                {
-                                    if (selaStr.Contains("立享"))
-                                    {
-                                        selaStr = selaStr.Replace("立享", "");
-                                        info.Sela = Convert.ToDecimal(selaStr);
-
-                                    }
-                                    else if (selaStr.Contains("最高返"))
-                                    {
-                                        selaStr = CommonFun.GetValue(selaStr, "最高返", "元");
-                                        info.ReturnPrice = Convert.ToDecimal(selaStr);
-                                    }
-                                    else
-                                    {
-                                        info.Remark = selaStr;
-                                    }
-                                }
-                                else
-                                {
-                                    selaStr = CommonFun.GetValue(m.Value, "返现", "元");
-
-                                    if (!string.IsNullOrEmpty(selaStr))
-                                    {
-                                        info.ReturnPrice = Convert.ToDecimal(selaStr);
-                                    }
-                                }
-
-                                info.ShopPrice = string.IsNullOrEmpty(priceStr) ? 0 : Convert.ToDecimal(priceStr);
-                                info.ShopSelaPrice = info.ShopPrice * (info.Sela / 10) - info.ReturnPrice;
-                                info.Inventory = inventoryStr;
-                                // SetMenuInfo(info, content);
-
-                                SetPriceInfo(info, content);
-
-                                return info;
-                            }
-                        }
-                        else if (content.Contains("安装APP查看价格"))
-                        {
-                            BaseItemInfo info = new BaseItemInfo();
-                            info.ShopSelaPrice = Decimal.MaxValue;
-                            return info;
-                        }
+                        rItem.ID = CommonFun.GetValue(item, "批准文号：", "<");
+                        return rItem;
                     }
 
                     // nextStr = CommonFun.GetValue(content, "<a class=\"prev\" disabled=\"disabled\" style=\"margin-right:5px;\">", "</a>");
+
                     prevUrl = CommonFun.GetValue(content, "上一页", "</div>");
-                    prevUrl = CommonFun.GetValue(prevUrl, "<a class=\"prev\" href=", "下一页");
-                    prevUrl = string.IsNullOrEmpty("prevUrl") ? prevUrl : CommonFun.GetValue(prevUrl, "\"", "\"");
+                    prevUrl = CommonFun.GetValue(prevUrl, "<a title='下一页' href='", "'");
+                    //prevUrl = string.IsNullOrEmpty("prevUrl") ? prevUrl : CommonFun.GetValue(prevUrl, "'", "'");
                 } while (!string.IsNullOrEmpty(prevUrl));
 
-                return null;
+                BaseItemInfo info = new BaseItemInfo();
+                info.ShopSelaPrice = Decimal.MaxValue;
+                return info;
             }
             catch (Exception ex)
             {
@@ -487,7 +438,7 @@ namespace GetWebPageDate.Util
 
             string url = string.Format("https://www.yaofangwang.com/search.html?keyword={0}", id);
 
-            string content = request.HttpGetPlatform(url);
+            string content = userRequest.HttpGet(url, null, true);
 
             List<string> items = GetItemStr(content);
 
@@ -566,11 +517,11 @@ namespace GetWebPageDate.Util
                     return;
                 }
 
-                HttpRequest tempRequest = new HttpRequest();
+                //HttpRequest tempRequest = new HttpRequest();
 
                 string url = string.Format("https://www.yaofangwang.com/search.html?keyword={0}", System.Web.HttpUtility.UrlEncode(name));
 
-                string content = tempRequest.HttpGetPlatform(url);
+                string content = userRequest.HttpGet(url, null, true);
 
                 List<string> items = GetItemStr(content);
 
@@ -601,7 +552,7 @@ namespace GetWebPageDate.Util
 
                             info.ShopPrice = string.IsNullOrEmpty(priceStr) ? 0 : Convert.ToDecimal(priceStr);
 
-                            content = tempRequest.HttpGetPlatform("http:" + CommonFun.GetValue(item, "<a target=\"_blank\" href=\"", "\""));
+                            content = userRequest.HttpGet("http:" + CommonFun.GetValue(item, "<a target=\"_blank\" href=\"", "\""), null, true);
 
                             string selaStr = CommonFun.GetValue(content, "class=\"all default_cursor fb_red mr10\">", "折");
 
@@ -1764,6 +1715,89 @@ namespace GetWebPageDate.Util
             return CommonFun.GetValue(text, "value=\"", "\"");
         }
 
+        public void GetGoodsSales()
+        {
+            try
+            {
+                Login(2);
+
+
+                string url = "https://yaodian.yaofangwang.com/goods_sales/List";
+
+                string postDataStr = "pagination%5Bpage%5D={0}&pagination%5Bpages%5D={1}&pagination%5Bperpage%5D=50&pagination%5Btotal%5D={2}&query%5Bdatetype%5D=3&query%5B%5D=on&query%5Bbegindate%5D={3}&query%5Benddate%5D={4}";
+
+                string content = request.HttpGet(url, null, true);
+                int totalPage = 0;
+                int page = 1;
+                int onePageCount = 50;
+                int totalCount = 100;
+                string endTime = DateTime.Now.ToString("yyyy-MM-dd");
+                string startTime = DateTime.Now.AddDays(-90).ToString("yyyy-MM-dd");
+
+                do
+                {
+                    //request.HttpGet(url, null, true);
+                    string postData = string.Format(postDataStr, page, onePageCount, totalCount, startTime, endTime);
+
+                    content = request.HttpPost(url, postData, heads);
+
+
+                    JObject job = (JObject)JsonConvert.DeserializeObject(content);
+
+                    if (totalPage == 0)
+                    {
+                        toltalCount = Convert.ToInt32(job["result"]["meta"]["total"].ToString());
+                        totalPage = Convert.ToInt32(Math.Ceiling(toltalCount / (double)onePageCount));
+                    }
+
+                    string dataStr = job["result"]["data"].ToString();
+
+                    List<BaseItemInfo> items = GetOnePageSalesItems(dataStr);
+
+                    foreach (BaseItemInfo item in items)
+                    {
+                        CommonFun.WriteCSV(fileName + "goodsSales" + ticks + fileExtendName, item);
+                    }
+                    Console.WriteLine("{0} totalPage:{1} page:{2}", DateTime.Now, totalPage, page);
+                } while (totalPage >= ++page);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex);
+            }
+        }
+
+        private List<BaseItemInfo> GetOnePageSalesItems(string content)
+        {
+            List<BaseItemInfo> items = new List<BaseItemInfo>();
+            try
+            {
+                if (!string.IsNullOrEmpty(content))
+                {
+                    JArray pJob = (JArray)JsonConvert.DeserializeObject(content);
+
+                    foreach(JObject job in pJob)
+                    {
+                        SalesItemInfo item = new SalesItemInfo();
+                        item.SalesRanking = job["row_index"].ToString();
+                        item.ItemName = job["namecn"].ToString();
+                        item.Format = job["standard"].ToString();
+                        item.Type = job["troche_type"].ToString();
+                        item.SalesVolume = job["qty"].ToString();
+                        item.SalesAmount = job["price"].ToString();
+                        items.Add(item);
+                    }
+                }
+               
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex);
+            }
+
+            return items;
+        }
+
         /// <summary>
         /// 更新物品信息
         /// </summary>
@@ -1782,6 +1816,27 @@ namespace GetWebPageDate.Util
 
                 if (!string.IsNullOrEmpty(content))
                 {
+                    string limitMinPriceStr = CommonFun.GetValue(content, "<input type=\"hidden\" ID=\"hf_lockPrice\" value=\"", "\"");
+
+                    decimal limitMinPrice = string.IsNullOrEmpty(limitMinPriceStr) ? 0 : Convert.ToDecimal(limitMinPriceStr);
+
+                    if (limitMinPrice > 0)
+                    {
+                        if (item.PlatformPrice == 0)
+                        {
+                            item.PlatformPrice = item.ShopPrice;
+                        }
+
+                        item.Remark = limitMinPrice.ToString();
+                        CommonFun.WriteCSV(fileName + "limit" + ticks + fileExtendName, item);
+                        if (limitMinPrice == item.ShopPrice)
+                        {
+                            return true;
+                        }
+
+                        item.PlatformPrice = item.PlatformPrice < limitMinPrice ? limitMinPrice : item.PlatformPrice;
+                    }
+
                     MatchCollection ms = CommonFun.GetValues(content, "<input type=\"text\"", "/>");
                     string authorizedCode = GetTextVaule(ms[0].Value);
                     string namecn = GetTextVaule(ms[1].Value);
@@ -1853,6 +1908,10 @@ namespace GetWebPageDate.Util
                     {
                         item.Remark += content;
                         Console.WriteLine("UpdateItemInfo result:{0}", content);
+                        if (content.Contains("价格每天只能修改一次"))
+                        {
+                            return true;
+                        }
                     }
 
                 }
@@ -1884,13 +1943,13 @@ namespace GetWebPageDate.Util
             {
                 Dictionary<string, BaseItemInfo> items = new Dictionary<string, BaseItemInfo>();
                 BaseItemInfo item = new BaseItemInfo();
-                item.ID = "国药准字Z20080183";
+                item.ID = "注册证号H20160414";
                 item.ViewCount = "16323772";
-                item.Format = "10mlx6支/盒";
-                item.Name = "参仙升脉口服液";
-                item.Created = "山东步长制药股份有限公司";
+                item.Format = "50mgx10片x2板/盒";
+                item.Name = "盐酸伊托必利片";
+                item.Created = "MYLANEPDG.K.,KATSUYAMAPLANT";
                 item.Type = "2019";
-                item.Inventory = "17";
+                item.Inventory = "8";
                 item.ItemName = "552603";
                 items.Add("", item);
                 return items;

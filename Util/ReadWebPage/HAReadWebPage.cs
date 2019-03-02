@@ -11,9 +11,9 @@ namespace GetWebPageDate.Util.ReadWebPage
 {
     public class HAReadWebPage : BaseReadWebPage
     {
-        private string userName;
+        //private string userName;
 
-        private string password;
+        //private string password;
 
         public HAReadWebPage()
         {

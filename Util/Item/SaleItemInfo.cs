@@ -25,7 +25,7 @@ namespace GetWebPageDate.Util.Item
 
         public override string GetLogHeadLine()
         {
-            return "排名(销量),商品名称,包装规格,剂型,商品销量,销售额￥";
+            return "排名(销量),商品名称,包装规格,批准文号,生产厂家,剂型,商品销量,销售额￥";
         }
 
         public override string[] GetLogStrArr()
@@ -35,6 +35,8 @@ namespace GetWebPageDate.Util.Item
                 "" + SalesRanking,
                 "" + ItemName,
                 "" + Format,
+                "" + ID,
+                "" + Created,
                 "" + Type,
                 "" + SalesVolume,
                 "" + SalesAmount,

@@ -6,6 +6,7 @@ using GetWebPageDate.Util.SyncStock;
 using GetWebPageDate.Util.UpdatePrice;
 using System;
 using System.Collections.Generic;
+using System.Data;
 using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
@@ -20,6 +21,9 @@ namespace GetWebPageDate
         {
             try
             {
+                #region 填充表格
+                FillFiled();
+                #endregion
                 #region 药途网
                 ReadYaoTuWebPage yaoTuRead = new ReadYaoTuWebPage();
                 //yaoTuRead.Start();
@@ -33,7 +37,7 @@ namespace GetWebPageDate
                 //readPlatform.UpdatePrice();
                 //readPlatform.OptOrder();
                 //readPlatform.OptWaitingSend();
-                readPlatform.GetGoodsSales();
+                //readPlatform.GetGoodsSales();
                 #endregion
 
                 #region tk上架操作
@@ -135,6 +139,89 @@ namespace GetWebPageDate
             }
             while ("quit" != info);
 
+        }
+
+        private static string GetFieldValue(DataTable data, int row, string filedName)
+        {
+            return data.Columns.Contains(filedName) ? data.Rows[row][filedName].ToString() : "";
+        }
+
+        private static List<BaseItemInfo> GetItemListByXlsx(string fileName, string sheetName = "Sheet1")
+        {
+            List<BaseItemInfo> items = new List<BaseItemInfo>();
+            try
+            {
+                DataTable data = CommonFun.ReadXLS(fileName, sheetName);
+
+                for (int row = 0; row < data.Rows.Count; row++)
+                {
+                    try
+                    {
+                        //BaseItemInfo item = new BaseItemInfo();
+                        SalesItemInfo item = new SalesItemInfo();
+
+                        item.SalesRanking = GetFieldValue(data, row, "排名(销量)");
+                        item.ID = GetFieldValue(data, row, "批准文号");
+                        item.Name = GetFieldValue(data, row, "通用名称");
+                        item.ItemName = GetFieldValue(data, row, "商品名称");
+                        item.Created = GetFieldValue(data, row, "生产厂家"); 
+                        item.Format = GetFieldValue(data, row, "包装规格");
+                        item.Type = GetFieldValue(data, row, "剂型");
+                        item.SalesVolume = GetFieldValue(data, row, "商品销量");
+                        item.SalesAmount = GetFieldValue(data, row, "销售额￥"); 
+
+                        items.Add(item);
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine(ex);
+                    }
+                }
+            }
+            catch(Exception ex)
+            {
+                Console.WriteLine(ex);
+            }
+
+            return items;
+        }
+
+        private static void FillFiled()
+        {
+            try
+            {
+                List<BaseItemInfo> fItems = GetItemListByXlsx("填充表.xlsx", "goodsSales636835074416124539 - ");
+
+                List<BaseItemInfo> rItems = GetItemListByXlsx("原表.xlsx", "原表");
+
+                foreach(BaseItemInfo fItem in fItems)
+                {
+                    bool isFind = false;
+                    foreach(BaseItemInfo rItem in rItems)
+                    {
+                        if (fItem.ItemName.Trim() == rItem.Name.Trim() && CommonFun.IsSameFormat(fItem.Format, rItem.Format))
+                        {
+                            fItem.ID = rItem.ID;
+                            fItem.Created = rItem.Created;                      
+                            isFind = true;
+                            break;
+                        }
+                    }
+
+                    CommonFun.WriteCSV("newSalesItemInfo.csv", fItem);
+
+                    if (!isFind)
+                    {
+                        CommonFun.WriteCSV("notFindSalesItemInfo.csv", fItem);
+                    }
+                }
+
+                Console.WriteLine("Finished..........................");
+            }
+            catch(Exception ex)
+            {
+                Console.WriteLine(ex);
+            }
         }
 
         private static Dictionary<string, BaseItemInfo> GetTKData()

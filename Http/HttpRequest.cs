@@ -56,6 +56,7 @@ namespace GetWebPageDate.Http
 
         public string HttpPost(string url, string postDataStr, string referfer, string accept, Encoding encoding, ref string reUri, Dictionary<string, string> heads)
         {
+            int runCount = 0;
             do
             {
                 try
@@ -145,7 +146,7 @@ namespace GetWebPageDate.Http
                         sleepTime = 30 * 1000;
                     }
                     Thread.Sleep(sleepTime);
-                    if (ex.ToString().Contains("404") || ex.ToString().Contains("指定的值含有无效的控制字符") || ex.ToString().Contains("(500)") || ex.ToString().Contains("无法处理从 HTTP/HTTPS 协议到其他不同协议的重定向"))
+                    if (ex.ToString().Contains("404") || runCount++ > 3)
                     {
                         return null;
                     }
@@ -326,6 +327,7 @@ namespace GetWebPageDate.Http
 
         public string HttpGet(string url, Encoding encoding, bool isUseUserAgent = false, Dictionary<string, string> heads = null)
         {
+            int runCount = 0;
             do
             {
                 try
@@ -404,7 +406,8 @@ namespace GetWebPageDate.Http
                         sleepTime = 30 * 1000;
                     }
                     Thread.Sleep(sleepTime);
-                    if (ex.ToString().Contains("404") || ex.ToString().Contains("(500)"))
+                    
+                    if (ex.ToString().Contains("404") || runCount++ > 3)
                     {
                         return "";
                     }

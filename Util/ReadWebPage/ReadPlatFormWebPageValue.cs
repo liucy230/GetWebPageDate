@@ -1332,9 +1332,9 @@ namespace GetWebPageDate.Util
                             Login(2);
                         }
 
-                        string viewState = CommonFun.GetUrlEncode(CommonFun.GetValue(content, "id=\"__VIEWSTATE\" value=\"", "\""), false);
+                        //string viewState = CommonFun.GetUrlEncode(CommonFun.GetValue(content, "id=\"__VIEWSTATE\" value=\"", "\""), false);
 
-                        string generator = CommonFun.GetValue(content, "id=\"__VIEWSTATEGENERATOR\" value=\"", "\"");
+                        //string generator = CommonFun.GetValue(content, "id=\"__VIEWSTATEGENERATOR\" value=\"", "\"");
 
                         List<string> dateStr = new List<string>();
 
@@ -1354,7 +1354,7 @@ namespace GetWebPageDate.Util
                             //batch_list[0][medicine_orderno]:C9010610304980441-1
                             string qty = CommonFun.GetValue(m.Value, "<input type=\"number\" minvalue=\"1\" value=\"", "\"");
                             string batchno = GetCreateDate();
-                            string medicine_orderno = CommonFun.GetValue(m.Value, "data-id=\"", "\"") + "-" + (count + 1);
+                            string medicine_orderno = CommonFun.GetValue(m.Value, "data-id=\"", "\"");
                             itemListPostStr += string.Format(listPostStr, count, qty, batchno, medicine_orderno);
 
                             count++;

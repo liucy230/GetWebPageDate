@@ -22,7 +22,7 @@ namespace GetWebPageDate
             try
             {
                 #region 填充表格
-                FillFiled();
+                //FillFiled();
                 #endregion
                 #region 药途网
                 ReadYaoTuWebPage yaoTuRead = new ReadYaoTuWebPage();
@@ -34,7 +34,7 @@ namespace GetWebPageDate
                 ReadPlatFormWebPageValue readPlatform = new ReadPlatFormWebPageValue();
                 //readPlatform.Test();
                 //readPlatform.Start();
-                //readPlatform.UpdatePrice();
+                readPlatform.UpdatePrice();
                 //readPlatform.OptOrder();
                 //readPlatform.OptWaitingSend();
                 //readPlatform.GetGoodsSales();

@@ -49,6 +49,11 @@ namespace GetWebPageDate.Util
         protected List<string> minStockList = new List<string>();
 
         /// <summary>
+        /// “.”后缀编码信息编码信息
+        /// </summary>
+        protected PointTypeInfo pointTypInfo = new PointTypeInfo();
+
+        /// <summary>
         /// 获取在售列表
         /// </summary>
         protected Dictionary<string, BaseItemInfo> sellItems = new Dictionary<string, BaseItemInfo>();
@@ -191,10 +196,54 @@ namespace GetWebPageDate.Util
 
             unUpdatePrice = ReadXlsItems("UnUpdatePrice.xlsx");
 
+            InitPointTypeInfo();
+
             ThreadPool.SetMaxThreads(10, 10);
         }
 
+        /// <summary>
+        /// 初始化“.”后缀编码信息编码信息
+        /// </summary>
+        private void InitPointTypeInfo()
+        {
+            try
+            {
+                string info = ConfigurationManager.AppSettings["pointTypeKey"];
 
+                string[] arrayStr = info.Split('|');
+
+                pointTypInfo.Type = arrayStr[0].Split(',').ToList();
+                pointTypInfo.ClickCount = Convert.ToInt32(arrayStr[1]);
+                pointTypInfo.GetPriceStock = Convert.ToInt32(arrayStr[2]);
+
+                string[] minStr = arrayStr[3].Split(',');
+                pointTypInfo.LowerStock = Convert.ToInt32(minStr[0]);
+                pointTypInfo.LTLowerPrice = Convert.ToDecimal(minStr[1]);
+                pointTypInfo.MTLowerPrice = Convert.ToDecimal(minStr[2]);
+                pointTypInfo.MaxDownRate = Convert.ToInt32(arrayStr[4]);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex);
+            }
+        }
+
+        public bool IsPointType(string type)
+        {
+
+            if (type.Contains("."))
+            {
+                foreach (string sType in pointTypInfo.Type)
+                {
+                    if (type.Contains(sType))
+                    {
+                        return true;
+                    }
+                }
+            }
+
+            return false;
+        }
 
         protected Dictionary<string, BaseItemInfo> ReadXlsItems(string fileName)
         {

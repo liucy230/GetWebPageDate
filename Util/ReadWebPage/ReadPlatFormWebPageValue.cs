@@ -1564,6 +1564,74 @@ namespace GetWebPageDate.Util
             }
         }
 
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="item"></param>
+        /// <param name="getPriceStock">有效价格库存</param>
+        /// <param name="lowerStock">改价最小库存值</param>
+        /// <param name="minClickCount">点击率</param>
+        /// <param name="mtlowerPrice">大于最低库存量降价值</param>
+        /// <param name="ltlowerPrice">小于最低库存量降价值</param>
+        /// <param name="maxDownRate">最大降价幅度</param>
+        /// <param name="opt"></param>
+        private void UpdatePriceProcess(BaseItemInfo item, int getPriceStock, int lowerStock, int minClickCount, decimal mtlowerPrice, decimal ltlowerPrice, int maxDownRate, bool opt)
+        {
+            try
+            {
+                int iClickingRate = GetClickingRate(item);
+
+                decimal minPrice = decimal.MaxValue;
+
+                int stock = getPriceStock;
+
+                string iFileName = "YF/updatePriceUpFive";
+
+                decimal diffPrice = mtlowerPrice;
+
+                bool isLimitDown = true;
+
+                if (iClickingRate >= minClickCount)
+                {
+                    if (Convert.ToInt16(item.Inventory) <= lowerStock)
+                    {
+                        stock = 0;
+                        iFileName = "YF/updatePriceLowFive";
+                        diffPrice = ltlowerPrice;
+                        isLimitDown = false;
+                    }
+                }
+                else
+                {
+                    stock = 0;
+                }
+
+                minPrice = GetMinPrice(item, stock);
+
+                OptUpdatePrice(minPrice, item, diffPrice, opt, isLimitDown, iFileName, minDownRate);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex);
+            }
+        }
+
+        /// <summary>
+        /// 带后缀编码的商品处理
+        /// </summary>
+        /// <param name="item"></param>
+        private void PointTypeProcess(BaseItemInfo item, bool opt)
+        {
+            try
+            {
+                UpdatePriceProcess(item, pointTypInfo.GetPriceStock, pointTypInfo.LowerStock, pointTypInfo.ClickCount, pointTypInfo.MTLowerPrice, pointTypInfo.LTLowerPrice, pointTypInfo.MaxDownRate, opt);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex);
+            }
+        }
+
         public void UpdatePrice()
         {
             try
@@ -1607,6 +1675,12 @@ namespace GetWebPageDate.Util
                                 //    continue;
                                 //}
 
+                                if (IsPointType(item.Type))
+                                {
+                                    PointTypeProcess(item, opt);
+                                    continue;
+                                }
+
                                 if (IsInSpcTypeList(item.Type))
                                 {
                                     decimal minPrice = decimal.MaxValue;
@@ -1617,36 +1691,37 @@ namespace GetWebPageDate.Util
                                 }
                                 else if (IsInTypeList(item.Type))
                                 {
-                                    int iClickingRate = GetClickingRate(item);
+                                    UpdatePriceProcess(item, minStock, Convert.ToInt16(minStockList[0]), clickingRate, lPrice, Convert.ToDecimal(minStockList[1]), minDownRate, opt);
+                                    //int iClickingRate = GetClickingRate(item);
 
-                                    decimal minPrice = decimal.MaxValue;
+                                    //decimal minPrice = decimal.MaxValue;
 
-                                    int stock = minStock;
+                                    //int stock = minStock;
 
-                                    string iFileName = "YF/updatePriceUpFive";
+                                    //string iFileName = "YF/updatePriceUpFive";
 
-                                    decimal diffPrice = lPrice;
+                                    //decimal diffPrice = lPrice;
 
-                                    bool isLimitDown = true;
+                                    //bool isLimitDown = true;
 
-                                    if (iClickingRate >= clickingRate)
-                                    {
-                                        if (Convert.ToInt16(item.Inventory) <= Convert.ToInt16(minStockList[0]))
-                                        {
-                                            stock = 0;
-                                            iFileName = "YF/updatePriceLowFive";
-                                            diffPrice = Convert.ToDecimal(minStockList[1]);
-                                            isLimitDown = false;
-                                        }
-                                    }
-                                    else
-                                    {
-                                        stock = 0;
-                                    }
+                                    //if (iClickingRate >= clickingRate)
+                                    //{
+                                    //    if (Convert.ToInt16(item.Inventory) <= Convert.ToInt16(minStockList[0]))
+                                    //    {
+                                    //        stock = 0;
+                                    //        iFileName = "YF/updatePriceLowFive";
+                                    //        diffPrice = Convert.ToDecimal(minStockList[1]);
+                                    //        isLimitDown = false;
+                                    //    }
+                                    //}
+                                    //else
+                                    //{
+                                    //    stock = 0;
+                                    //}
 
-                                    minPrice = GetMinPrice(item, stock);
+                                    //minPrice = GetMinPrice(item, stock);
 
-                                    OptUpdatePrice(minPrice, item, diffPrice, opt, isLimitDown, iFileName, minDownRate);
+                                    //OptUpdatePrice(minPrice, item, diffPrice, opt, isLimitDown, iFileName, minDownRate);
                                 }
                             }
 
@@ -1689,7 +1764,7 @@ namespace GetWebPageDate.Util
                     string priceStr = CommonFun.GetValue(m.Value, "<div par='price'>", "</div>");
                     priceStr = string.IsNullOrEmpty(priceStr) ? CommonFun.GetValue(m.Value, "¥", "<") : CommonFun.GetValue(priceStr, "¥", "<");
                     item.ShopPrice = string.IsNullOrEmpty(priceStr) ? 0 : Convert.ToDecimal(priceStr);
-                    item.Inventory = CommonFun.GetValue(m.Value, "<div>库存", "件");
+                    item.Inventory = CommonFun.GetValue(m.Value, "库存", "件");
                     item.Inventory = item.Inventory.Trim();
 
                     item.ItemName = CommonFun.GetValue(m.Value, "<input type=\"hidden\" id=\"hf_MedicineId\" name=\"hf_MedicineId\" value=\"", "\"");
@@ -1776,7 +1851,7 @@ namespace GetWebPageDate.Util
                 {
                     JArray pJob = (JArray)JsonConvert.DeserializeObject(content);
 
-                    foreach(JObject job in pJob)
+                    foreach (JObject job in pJob)
                     {
                         SalesItemInfo item = new SalesItemInfo();
                         item.SalesRanking = job["row_index"].ToString();
@@ -1788,7 +1863,7 @@ namespace GetWebPageDate.Util
                         items.Add(item);
                     }
                 }
-               
+
             }
             catch (Exception ex)
             {

@@ -64,6 +64,8 @@ namespace GetWebPageDate.Util
 
         Dictionary<string, string> heads = new Dictionary<string, string>();
 
+        private string getedTag = "[GETED]";
+
         public ReadPlatFormWebPageValue()
         {
             string userInfo1 = ConfigurationManager.AppSettings["yfUsernameAndPossword1"];
@@ -933,7 +935,7 @@ namespace GetWebPageDate.Util
         /// </summary>
         /// <param name="content"></param>
         /// <param name="orderDic"></param>
-        /// <param name="useType">用途：1、处理处方 2、标记填写备注 3、处理发货</param>
+        /// <param name="useType">用途：1、处理处方 2、标记填写备注 3、处理发货 4、已成交绿色标记订单</param>
         private void GetOrderNOAndDesc(string content, Dictionary<string, string> orderDic, int useType)
         {
             try
@@ -993,7 +995,21 @@ namespace GetWebPageDate.Util
                                     }
                                 }
                             }
-
+                            else if (useType == 4)
+                            {
+                                if (Convert.ToInt32(stateStr) == 4)
+                                {
+                                    string desc = CommonFun.GetValue(m.Value, "title=\"", "\"");
+                                    //不含已取标识
+                                    if (string.IsNullOrEmpty(desc) || !desc.Contains(getedTag))
+                                    {
+                                        if (!orderDic.ContainsKey(orderNO))
+                                        {
+                                            orderDic.Add(orderNO, desc);
+                                        }
+                                    }
+                                }
+                            }
                         }
                     }
                 }
@@ -1097,6 +1113,135 @@ namespace GetWebPageDate.Util
         }
 
         /// <summary>
+        /// 获取指定状态的信息{"1":"红色","2":"橙色","3":"黄色","4":"绿色","5":"蓝色","6":"紫色"}
+        /// </summary>
+        /// <param name="state"></param>
+        public void GetStateInfoToXLS(int state = 4)
+        {
+            try
+            {
+                bool opt = true;
+                int page = 1;
+                int totalPage = 0;
+                bool isGetAll = ConfigurationManager.AppSettings["yfGetAllGreenInfo"] == null ? false : Convert.ToBoolean(ConfigurationManager.AppSettings["yfGetAllGreenInfo"]);
+                Login(2);
+                do
+                {
+                    try
+                    {
+                        Dictionary<string, string> orderList = new Dictionary<string, string>();
+
+                        string sUrl = string.Format("https://yaodian.yaofangwang.com/order/List?status=CHENGJIAO&page={0}", page);
+
+                        sUrl = isGetAll ? sUrl : sUrl + string.Format("&start_date={0}&end_date={1}", DateTime.Now.ToString("yyyy-mm-dd"), DateTime.Now.ToString("yyyy-mm-dd"));
+
+                        string content = request.HttpGet(sUrl);
+
+                        if (totalPage == 0)
+                        {
+                            string totalPageStr = CommonFun.GetValue(content, "条，共", "页，");
+
+                            totalPage = Convert.ToInt32(totalPageStr);
+                        }
+
+                        GetOrderNOAndDesc(content, orderList, 4);
+
+                        List<YFGreenOrderInfo> items = GetGreenOrderItems(orderList);
+
+                        foreach (YFGreenOrderInfo item in items)
+                        {
+                            CommonFun.WriteCSV(fileName + "Green" + fileExtendName, item);
+
+                            if (opt)
+                            {
+                                UpdateRankAndRemark(item.OrderNO, "4", item.Remark + getedTag);
+                            }
+                        }
+
+                        Console.WriteLine("Running GetGreen info totalPage:{0} page:{1}", totalPage, page);
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine(ex);
+                    }
+                } while (++page <= totalPage);
+            }
+            catch(Exception ex)
+            {
+                Console.WriteLine(ex);
+            }
+        }
+
+        public List<YFGreenOrderInfo> GetGreenOrderItems(Dictionary<string, string> orders)
+        {
+            List<YFGreenOrderInfo> items = new List<YFGreenOrderInfo>();
+
+            string iUrl = "https://yaodian.yaofangwang.com/order/Detail/{0}";
+
+            foreach (KeyValuePair<string, string> order in orders)
+            {
+                try
+                {
+                    string content = request.HttpGet(string.Format(iUrl, order.Key));
+
+                    string addressInfo = CommonFun.GetValue(content, "<i class=\"fa fa-truck\"></i>收货人信息", "<div class=\"row\">");
+
+                    string itemInfo = CommonFun.GetValue(content, "<tbody>", "</tbody>");
+
+
+                    //item.SenderName = senderName;
+                    //item.SenderPhoneNumber = senderPhoneNumber;
+                    MatchCollection aMs = CommonFun.GetValues(addressInfo, "<div class=\"col-md-4\">", "</div>");
+ 
+                    string createTime = CommonFun.GetValue(content, "订购时间： </div>", "订单总额");
+
+                    createTime = CommonFun.GetValue(createTime, "<div class=\"col-md-4\">", "</div>");
+
+                    MatchCollection rMs = CommonFun.GetValues(itemInfo, " <td class=\"tdcenter lh24\" style=\"width: 2%;\" rowspan=\"1\">", "</tr>");
+                    int count = 0;
+                    foreach (Match m in rMs)
+                    {
+                        YFGreenOrderInfo item = new YFGreenOrderInfo();
+                        item.OrderNO = count++ > 0 ? "" : order.Key;
+                        item.ReceiverName = aMs[0].Value.Trim(); ;
+                        item.ReceiverPhoneNumber = aMs[1].Value.Trim().Replace("&nbsp;", "");
+                        item.ReceiverAddress = CommonFun.GetValue(addressInfo, "<div class=\"col-md-10\">", "</div>");
+                        item.CreateOrderTime = createTime;
+                        string nameInfo = CommonFun.GetValue(m.Value, "<td class=\"tdcenter lh24\" rowspan=\"1\" title=\"", "/td>");
+                        string name = CommonFun.GetValue(nameInfo, "target=\"_blank\">", "</a>");
+                        item.ViewCount = CommonFun.GetValue(nameInfo, "<br />商品编号：", "<").Trim();
+
+                        MatchCollection iMs = CommonFun.GetValues(m.Value, "<td class=\"tdcenter lh24\" rowspan=\"1\">", "<");
+                        //MatchCollection iMs1 = CommonFun.GetValues(m.Value, "<td class=\"tdcenter lh24\" >", "</td>");
+                        item.Name = name.Trim().Replace(" ", "").Replace("\r\n", "") + " ";
+                        item.ID = iMs[0].Value.Trim() + " ";
+                        item.Format = iMs[1].Value.Trim() + " ";
+
+                        string priceStr = iMs[3].Value.Trim().Replace(" ", "");
+                        priceStr = priceStr.Replace("¥", "");
+                        item.ShopPrice = Convert.ToDecimal(priceStr);
+                        //item.Inventory = 
+                        //item.ShopPrice = Convert.ToDecimal(priceStr.Trim());
+                        //item.ID += iMs[2].Value.Trim() + " ";
+                        string toPriceStr = iMs[4].Value.Trim().Replace(" ", "");
+                        toPriceStr = toPriceStr.Replace("¥", "");
+                        item.TotalPrice = toPriceStr;
+                        int itemCount = Convert.ToInt32(Convert.ToDecimal(toPriceStr) / Convert.ToDecimal(priceStr));
+                        item.Inventory = itemCount.ToString();
+                        item.Remark = order.Value;
+                        items.Add(item);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine(ex);
+                }
+            }
+
+            return items;
+        }
+
+        /// <summary>
         /// 获取待发货商品信息
         /// </summary>
         /// <param name="conent"></param>
@@ -1187,6 +1332,23 @@ namespace GetWebPageDate.Util
             return items;
         }
 
+        public string UpdateRankAndRemark(string orderNO, string rank, string dec)
+        {
+            string uUrl = "https://yaodian.yaofangwang.com/order/EditDesc/{0}";
+            string postData = "orderno={0}&rank={1}&desc={2}&X-Requested-With=XMLHttpRequest"; //"method=OrderDescShop&CustomerShopOrderNo={0}&dec={1}&rank={2}";
+            string result = null;
+            try
+            {
+                result = request.HttpPost(string.Format(uUrl, orderNO), string.Format(postData, orderNO, rank, CommonFun.GetUrlEncode(dec)));
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex);
+            }
+
+            return result;
+        }
+
         /// <summary>
         /// 更新标记状态
         /// </summary>
@@ -1195,11 +1357,6 @@ namespace GetWebPageDate.Util
         {
             try
             {
-                string uUrl = "https://yaodian.yaofangwang.com/order/EditDesc/{0}";
-
-
-                string postData = "orderno={0}&rank={1}&desc={2}&X-Requested-With=XMLHttpRequest"; //"method=OrderDescShop&CustomerShopOrderNo={0}&dec={1}&rank={2}";
-
                 foreach (YFOrderWriteInfo wItem in items)
                 {
                     BaseItemInfo item = wItem.BaseItem;
@@ -1219,7 +1376,8 @@ namespace GetWebPageDate.Util
                         dec += "开";
                     }
 
-                    string result = request.HttpPost(string.Format(uUrl, orderNO), string.Format(postData, orderNO, rank, CommonFun.GetUrlEncode(dec)));
+                    string result = UpdateRankAndRemark(orderNO, rank, dec);
+
                     item.Name = startOrderNO.ToString();
                     foreach (BaseItemInfo sItem in wItem.TotalItem)
                     {

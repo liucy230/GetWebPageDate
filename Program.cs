@@ -36,9 +36,9 @@ namespace GetWebPageDate
                 //readPlatform.Start();
                 //readPlatform.UpdatePrice();
                 //readPlatform.OptOrder();
-                //readPlatform.OptWaitingSend();
+                readPlatform.OptWaitingSend();
                 //readPlatform.GetGoodsSales();
-                readPlatform.GetStateInfoToXLS();
+                //readPlatform.GetStateInfoToXLS();
                 #endregion
 
                 #region tk上架操作

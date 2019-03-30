@@ -19,6 +19,38 @@ using GetWebPageDate.Util.Item;
 namespace GetWebPageDate.Util
 {
     /// <summary>
+    /// 颜色标记
+    /// </summary>
+    public enum TagColor
+    {
+        Empty = 0,
+        /// <summary>
+        /// "1":"红色"
+        /// </summary>
+        Red,
+        /// <summary>
+        /// "2":"橙色"
+        /// </summary>
+        Orange,
+        /// <summary>
+        /// "3":"黄色"
+        /// </summary>
+        Yellow,
+        /// <summary>
+        /// "4":"绿色"
+        /// </summary>
+        Green,
+        /// <summary>
+        /// "5":"蓝色"
+        /// </summary>
+        Blue,
+        /// <summary>
+        /// "6":"紫色"
+        /// </summary>
+        Purple,
+    }
+
+    /// <summary>
     /// 药房网
     /// </summary>
     public class ReadPlatFormWebPageValue : BaseReadWebPage
@@ -861,7 +893,8 @@ namespace GetWebPageDate.Util
             {
                 int page = 1;
                 int totalPage = 0;
-                Login(3);
+                Dictionary<string, string> orderDic = new Dictionary<string, string>();
+                Login(2);
                 do
                 {
                     try
@@ -879,27 +912,7 @@ namespace GetWebPageDate.Util
 
                         Console.WriteLine("Running OptPrescription totalPage:{0} page:{1}", totalPage, page);
 
-                        Dictionary<string, string> orderDic = new Dictionary<string, string>();
                         GetOrderNOAndDesc(content, orderDic, 1);
-
-                        foreach (string orderNO in orderDic.Keys)
-                        {
-                            string subUrl = string.Format("https://yaodian.yaofangwang.com/order/RX_Audit/{0}", orderNO);
-
-                            string postData = string.Format("orderno={0}&content=%E5%A4%84%E6%96%B9%E7%85%A7%E7%89%87%E7%AC%A6%E5%90%88%E8%A6%81%E6%B1%82%E8%A7%84%E8%8C%83&valid=valid&X-Requested-With=XMLHttpRequest", orderNO);
-
-                            string result = request.HttpPost(subUrl, postData);
-
-                            string code = CommonFun.GetValue(result, "code\":", ",");
-                            if (code != "1")
-                            {
-                                Console.WriteLine(result + "," + orderNO + "...........");
-                            }
-
-                            Console.WriteLine("{0} OptPrescription orderNO:{1}", DateTime.Now, orderNO);
-
-                            Thread.Sleep(waitTime);
-                        }
                     }
                     catch (Exception ex)
                     {
@@ -907,6 +920,29 @@ namespace GetWebPageDate.Util
                     }
 
                 } while (++page <= totalPage);
+
+                Login(3);
+
+                foreach (string orderNO in orderDic.Keys)
+                {
+                    string subUrl = string.Format("https://yaodian.yaofangwang.com/order/RX_Audit/{0}", orderNO);
+
+                    request.HttpGet(subUrl);
+
+                    string postData = string.Format("orderno={0}&content=%E5%A4%84%E6%96%B9%E7%85%A7%E7%89%87%E7%AC%A6%E5%90%88%E8%A6%81%E6%B1%82%E8%A7%84%E8%8C%83&valid=valid&X-Requested-With=XMLHttpRequest", orderNO);
+
+                    string result = request.HttpPost(subUrl, postData);
+
+                    string code = CommonFun.GetValue(result, "code\":", ",");
+                    if (code != "1")
+                    {
+                        Console.WriteLine(result + "," + orderNO + "...........");
+                    }
+
+                    Console.WriteLine("{0} OptPrescription orderNO:{1}", DateTime.Now, orderNO);
+
+                    Thread.Sleep(waitTime);
+                }
             }
             catch (Exception ex)
             {
@@ -916,7 +952,7 @@ namespace GetWebPageDate.Util
 
         private string GetCreateDate()
         {
-            DateTime date = DateTime.Now.AddMonths(-6);
+            DateTime date = DateTime.Now.AddMonths(6);
 
             return date.ToString("yyyy-MM-dd");
         }
@@ -940,73 +976,71 @@ namespace GetWebPageDate.Util
         {
             try
             {
-                if (useType == 1)
-                {
-                    MatchCollection ms = CommonFun.GetValues(content, "<span><b>订单编号：", "</b>");
+                MatchCollection ms = CommonFun.GetValues(content, "<td class=\"bl0 qizi\">", "</td>");
 
-                    foreach (Match m in ms)
+                foreach (Match m in ms)
+                {
+                    string stateStr = CommonFun.GetValue(m.Value, "rank=\"", "\"");
+                    if (!string.IsNullOrEmpty(stateStr))
                     {
-                        if (!orderDic.ContainsKey(m.Value))
+                        string orderNO = CommonFun.GetValue(m.Value, "<a href=\"/order/EditDesc/", "rank=");
+                        orderNO = orderNO.Substring(0, orderNO.Length - 1);
+                        string desc = CommonFun.GetValue(m.Value, "title=\"", "\"");
+
+                        if (useType == 1)
                         {
-                            orderDic.Add(m.Value, "");
+                            if (stateStr == Convert.ToString((int)TagColor.Green))
+                            {
+                                if (!orderDic.ContainsKey(orderNO))
+                                {
+                                    orderDic.Add(orderNO, desc);
+                                }
+                            }
                         }
-                    }
-                }
-                else
-                {
-                    MatchCollection ms = CommonFun.GetValues(content, "<td class=\"bl0 qizi\">", "</td>");
-
-                    foreach (Match m in ms)
-                    {
-                        string stateStr = CommonFun.GetValue(m.Value, "rank=\"", "\"");
-                        if (!string.IsNullOrEmpty(stateStr))
+                        else if (useType == 2)
                         {
-                            string orderNO = CommonFun.GetValue(m.Value, "<a href=\"/order/EditDesc/", "rank=");
-                            orderNO = orderNO.Substring(0, orderNO.Length - 1);
-
-                            if (useType == 2)
+                            if (stateStr == Convert.ToString((int)TagColor.Red))
                             {
-                                if (Convert.ToInt32(stateStr) == 0)
+                                if (!orderDic.ContainsKey(orderNO))
                                 {
-                                    if (!orderDic.ContainsKey(orderNO))
-                                    {
-                                        orderDic.Add(orderNO, "");
-                                    }
+                                    orderDic.Add(orderNO, desc);
                                 }
                             }
-                            else if (useType == 3)
+                        }
+                        else if (useType == 3)
+                        {
+                            if (stateStr == Convert.ToString((int)TagColor.Green))
                             {
-                                if (Convert.ToInt32(stateStr) == 1)
+                                if (!string.IsNullOrEmpty(desc) && desc.Contains("(") && desc.Contains(")"))
                                 {
-                                    string desc = CommonFun.GetValue(m.Value, "title=\"", "\"");
-                                    if (!string.IsNullOrEmpty(desc))
-                                    {
-                                        if (desc.Length == 12 && desc == CommonFun.GetNum(desc))
-                                        {
-                                            if (!orderDic.ContainsKey(orderNO))
-                                            {
-                                                orderDic.Add(orderNO, desc);
-                                            }
-                                        }
-                                        else
-                                        {
-                                            Console.WriteLine("{0} Desc Error orderNO:{1} desc:{2}", DateTime.Now, orderNO, desc);
-                                        }
-                                    }
-                                }
-                            }
-                            else if (useType == 4)
-                            {
-                                if (Convert.ToInt32(stateStr) == 4)
-                                {
-                                    string desc = CommonFun.GetValue(m.Value, "title=\"", "\"");
-                                    //不含已取标识
-                                    if (string.IsNullOrEmpty(desc) || !desc.Contains(getedTag))
+                                    int startIndex = desc.IndexOf("(") + 1;
+                                    int len = desc.IndexOf(")") - startIndex;
+                                    desc = desc.Substring(startIndex, len);// CommonFun.GetValue(desc, "\'(\'", "\')\'");
+                                    if (desc.Length == 12)
                                     {
                                         if (!orderDic.ContainsKey(orderNO))
                                         {
                                             orderDic.Add(orderNO, desc);
                                         }
+                                    }
+                                    else
+                                    {
+                                        Console.WriteLine("{0} Desc Error orderNO:{1} desc:{2}", DateTime.Now, orderNO, desc);
+                                    }
+                                }
+                            }
+                        }
+                        else if (useType == 4)
+                        {
+                            if (stateStr == TagColor.Green.ToString())
+                            {
+                                //string desc = CommonFun.GetValue(m.Value, "title=\"", "\"");
+                                //不含已取标识
+                                if (string.IsNullOrEmpty(desc) || !desc.Contains(getedTag))
+                                {
+                                    if (!orderDic.ContainsKey(orderNO))
+                                    {
+                                        orderDic.Add(orderNO, desc);
                                     }
                                 }
                             }
@@ -1100,7 +1134,7 @@ namespace GetWebPageDate.Util
                 } while (++page <= totalPage);
 
 
-                List<YFOrderWriteInfo> items = GetWaitingItems(orderList.Keys.ToList());
+                List<YFOrderWriteInfo> items = GetWaitingItems(orderList);
 
                 UpdateTagState(items);
 
@@ -1166,7 +1200,7 @@ namespace GetWebPageDate.Util
                     }
                 } while (++page <= totalPage);
             }
-            catch(Exception ex)
+            catch (Exception ex)
             {
                 Console.WriteLine(ex);
             }
@@ -1192,7 +1226,7 @@ namespace GetWebPageDate.Util
                     //item.SenderName = senderName;
                     //item.SenderPhoneNumber = senderPhoneNumber;
                     MatchCollection aMs = CommonFun.GetValues(addressInfo, "<div class=\"col-md-4\">", "</div>");
- 
+
                     string createTime = CommonFun.GetValue(content, "订购时间： </div>", "订单总额");
 
                     createTime = CommonFun.GetValue(createTime, "<div class=\"col-md-4\">", "</div>");
@@ -1246,18 +1280,20 @@ namespace GetWebPageDate.Util
         /// </summary>
         /// <param name="conent"></param>
         /// <returns></returns>
-        public List<YFOrderWriteInfo> GetWaitingItems(List<string> orders)
+        public List<YFOrderWriteInfo> GetWaitingItems(Dictionary<string, string> orders)
         {
             List<YFOrderWriteInfo> items = new List<YFOrderWriteInfo>();
 
             string iUrl = "https://yaodian.yaofangwang.com/order/Detail/{0}";
 
-            foreach (string order in orders)
+            foreach (KeyValuePair<string, string> info in orders)
             {
                 try
                 {
-                    YFOrderWriteInfo wItem = new YFOrderWriteInfo();
+                    string order = info.Key;
 
+                    YFOrderWriteInfo wItem = new YFOrderWriteInfo();
+                  
                     string content = request.HttpGet(string.Format(iUrl, order));
 
                     string addressInfo = CommonFun.GetValue(content, "<i class=\"fa fa-truck\"></i>收货人信息", "<div class=\"row\">");
@@ -1265,6 +1301,7 @@ namespace GetWebPageDate.Util
                     string itemInfo = CommonFun.GetValue(content, "<tbody>", "</tbody>");
 
                     YFOrderInfo item = new YFOrderInfo();
+                    item.Remark = info.Value;
                     item.Created = order;
                     item.SenderName = senderName;
                     item.SenderPhoneNumber = senderPhoneNumber;
@@ -1362,23 +1399,25 @@ namespace GetWebPageDate.Util
                     BaseItemInfo item = wItem.BaseItem;
 
                     string orderNO = item.Created;
-                    string rank = "1";
-                    string dec = startOrderNO.ToString();
+                    string rank = Convert.ToString((int)TagColor.Green);
+                    string dec = wItem.BaseItem.Remark + string.Format("({0})",startOrderNO.ToString());
 
-                    if (!IsRedTag(item.ViewCount))
-                    {
-                        rank = "5";
-                        dec += "+2017发走";
-                    }
-                    else if (!item.SellType.Contains("无需发票"))
-                    {
-                        rank = "5";
-                        dec += "开";
-                    }
+                    //if (!IsRedTag(item.ViewCount))
+                    //{
+                    //    rank = TagColor.Green.ToString();
+                    //    dec += "+2017发走";
+                    //}
+                    //else if (!item.SellType.Contains("无需发票"))
+                    //{
+                    //    rank = TagColor.Green.ToString();
+                    //    dec += "开";
+                    //}
 
                     string result = UpdateRankAndRemark(orderNO, rank, dec);
 
                     item.Name = startOrderNO.ToString();
+                    //item.Remark = dec;
+
                     foreach (BaseItemInfo sItem in wItem.TotalItem)
                     {
                         YFOrderInfo yfSItem = sItem as YFOrderInfo;
@@ -1413,6 +1452,10 @@ namespace GetWebPageDate.Util
                 {
                     BaseItemInfo item = wItem.BaseItem;
 
+                    string receiverStr = item.ID + " " + item.Remark;
+
+                    item.Remark = null;
+
                     CommonFun.WriteCSV(filePath + "send1_" + ticks + fileExtendName, item);
 
                     YFOrderInfo yfItem = item as YFOrderInfo;
@@ -1423,7 +1466,8 @@ namespace GetWebPageDate.Util
                     yfItem.ReceiverPhoneNumber = null;
                     yfItem.SenderName = null;
                     yfItem.SenderPhoneNumber = null;
-                    yfItem.ReceiverAddress = item.ID;
+                    yfItem.ReceiverAddress = receiverStr;
+                  
                     CommonFun.WriteCSV(filePath + "send2_" + ticks + fileExtendName, item);
 
                     foreach (BaseItemInfo sItem in wItem.TotalItem)

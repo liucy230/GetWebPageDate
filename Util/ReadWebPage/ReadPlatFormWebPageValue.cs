@@ -1311,25 +1311,29 @@ namespace GetWebPageDate.Util
                     item.ReceiverPhoneNumber = aMs[1].Value.Trim().Replace("&nbsp;", "");
                     item.ReceiverAddress = CommonFun.GetValue(addressInfo, "<div class=\"col-md-10\">", "</div>");
 
-                    MatchCollection rMs = CommonFun.GetValues(itemInfo, " <td class=\"tdcenter lh24\" style=\"width: 2%;\" rowspan=\"1\">", "</tr>");
+                    MatchCollection rMs = CommonFun.GetValues(itemInfo, " <tr>", "</tr>");
 
                     int count = 0;
                     foreach (Match m in rMs)
                     {
-                        string nameInfo = CommonFun.GetValue(m.Value, "<td class=\"tdcenter lh24\" rowspan=\"1\" title=\"", "/td>");
-                        string name = CommonFun.GetValue(nameInfo, "target=\"_blank\">", "</a>");
-                        item.ViewCount = CommonFun.GetValue(nameInfo, "<br />商品编号：", "<").Trim();
-
-                        MatchCollection iMs = CommonFun.GetValues(m.Value, "<td class=\"tdcenter lh24\" rowspan=\"1\">", "<");
-                        //MatchCollection iMs1 = CommonFun.GetValues(m.Value, "<td class=\"tdcenter lh24\" >", "</td>");
+                        string nameInfo = CommonFun.GetValue(m.Value, "<td rowspan=\"1\" class=\"tdcenter lh24\" ", "</td>");
+                        if (string.IsNullOrEmpty(nameInfo))
+                        {
+                            break;
+                        }
+                        string name = CommonFun.GetValue(nameInfo, "_blank\">", "</a>");
+                        
+                        MatchCollection iMs = CommonFun.GetValues(m.Value, "<td rowspan=\"1\" class=\"tdcenter lh24\">", "<");
+                        item.ViewCount = iMs[0].Value;
+                        
                         item.ID += name.Trim().Replace(" ", "").Replace("\r\n", "") + " ";
-                        item.ID += iMs[0].Value.Trim() + " ";
                         item.ID += iMs[1].Value.Trim() + " ";
-                        string priceStr = iMs[3].Value.Trim().Replace(" ", "");
+                        item.ID += iMs[2].Value.Trim() + " ";
+                        string priceStr = iMs[4].Value.Trim().Replace(" ", "");
                         priceStr = priceStr.Replace("¥", "");
                         //item.ShopPrice = Convert.ToDecimal(priceStr.Trim());
                         //item.ID += iMs[2].Value.Trim() + " ";
-                        string toPriceStr = iMs[4].Value.Trim().Replace(" ", "");
+                        string toPriceStr = iMs[6].Value.Trim().Replace(" ", "");
                         toPriceStr = toPriceStr.Replace("¥", "");
                         int itemCount = Convert.ToInt32(Convert.ToDecimal(toPriceStr) / Convert.ToDecimal(priceStr));
                         string stock = CommonFun.GetValue(m.Value, "库存：", "\"");
@@ -1338,8 +1342,8 @@ namespace GetWebPageDate.Util
 
                         YFOrderInfo tItem = new YFOrderInfo();
                         tItem.ItemName = name;
-                        tItem.ReceiverZipCode = iMs[0].Value.Trim();
-                        tItem.BuyerId = iMs[1].Value.Trim();
+                        tItem.ReceiverZipCode = iMs[1].Value.Trim();
+                        tItem.BuyerId = iMs[2].Value.Trim();
                         tItem.ExpressName = stock;//iMs1[1].Value.Trim().Replace("&nbsp;", "");
                         tItem.ExpressTemplate = priceStr.Trim();
                         if (++count == 1)

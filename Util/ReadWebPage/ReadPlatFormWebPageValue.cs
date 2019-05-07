@@ -830,13 +830,13 @@ namespace GetWebPageDate.Util
             Login(2);
             bool opt = true;
             BaseItemInfo item = new BaseItemInfo();
-            item.ID = "国药准字Z20025028";
-            item.ViewCount = "2461435";
-            item.Format = "0.4gx54粒/瓶";
-            item.Name = "前列倍喜胶囊";
-            item.Created = "贵州太和制药有限公司";
-            item.Type = "2017";
-            item.Inventory = "52";
+            item.ID = "国药准字Z10940063";
+            item.ViewCount = "235";
+            item.Format = "10mlx24支/盒";
+            item.Name = "复方双花口服液";
+            item.Created = "北京康益药业有限公司";
+            item.Type = "T-2020";
+            item.Inventory = "31";
             item.ItemName = "196329";
             if (IsInTypeList(item.Type))
             {
@@ -1032,7 +1032,7 @@ namespace GetWebPageDate.Util
                         }
                         else if (useType == 4)
                         {
-                            if (stateStr == TagColor.Green.ToString())
+                            if (stateStr == Convert.ToString((int)TagColor.Green))
                             {
                                 //string desc = CommonFun.GetValue(m.Value, "title=\"", "\"");
                                 //不含已取标识
@@ -1231,7 +1231,7 @@ namespace GetWebPageDate.Util
 
                     createTime = CommonFun.GetValue(createTime, "<div class=\"col-md-4\">", "</div>");
 
-                    MatchCollection rMs = CommonFun.GetValues(itemInfo, " <td class=\"tdcenter lh24\" style=\"width: 2%;\" rowspan=\"1\">", "</tr>");
+                    MatchCollection rMs = CommonFun.GetValues(itemInfo, "<td rowspan=\"2\" class=\"tdcenter lh24\"", "</tr>");
                     int count = 0;
                     foreach (Match m in rMs)
                     {
@@ -1242,23 +1242,24 @@ namespace GetWebPageDate.Util
                         item.ReceiverAddress = CommonFun.GetValue(addressInfo, "<div class=\"col-md-10\">", "</div>");
                         item.CreateOrderTime = createTime;
                         string nameInfo = CommonFun.GetValue(m.Value, "<td class=\"tdcenter lh24\" rowspan=\"1\" title=\"", "/td>");
-                        string name = CommonFun.GetValue(nameInfo, "target=\"_blank\">", "</a>");
-                        item.ViewCount = CommonFun.GetValue(nameInfo, "<br />商品编号：", "<").Trim();
+                        string name = CommonFun.GetValue(m.Value, "target=\"_blank\">", "</a>");
 
-                        MatchCollection iMs = CommonFun.GetValues(m.Value, "<td class=\"tdcenter lh24\" rowspan=\"1\">", "<");
+                        MatchCollection iMs = CommonFun.GetValues(m.Value, "<td rowspan=\"2\" class=\"tdcenter lh24\">", "</td>");
+                        item.ViewCount = iMs[0].Value;
                         //MatchCollection iMs1 = CommonFun.GetValues(m.Value, "<td class=\"tdcenter lh24\" >", "</td>");
                         item.Name = name.Trim().Replace(" ", "").Replace("\r\n", "") + " ";
-                        item.ID = iMs[0].Value.Trim() + " ";
-                        item.Format = iMs[1].Value.Trim() + " ";
+                        item.ID = iMs[1].Value.Trim() + " ";
+                        item.Format = iMs[2].Value.Trim() + " ";
 
-                        string priceStr = iMs[3].Value.Trim().Replace(" ", "");
+                        string priceStr = iMs[4].Value.Trim().Replace(" ", "");
                         priceStr = priceStr.Replace("¥", "");
                         item.ShopPrice = Convert.ToDecimal(priceStr);
                         //item.Inventory = 
                         //item.ShopPrice = Convert.ToDecimal(priceStr.Trim());
                         //item.ID += iMs[2].Value.Trim() + " ";
-                        string toPriceStr = iMs[4].Value.Trim().Replace(" ", "");
-                        toPriceStr = toPriceStr.Replace("¥", "");
+                        string toPriceStr = iMs[6].Value.Trim().Replace(" ", "");
+                        toPriceStr = CommonFun.GetValue(toPriceStr, "¥", "<");
+                        toPriceStr = toPriceStr.Trim();
                         item.TotalPrice = toPriceStr;
                         int itemCount = Convert.ToInt32(Convert.ToDecimal(toPriceStr) / Convert.ToDecimal(priceStr));
                         item.Inventory = itemCount.ToString();
@@ -1293,7 +1294,7 @@ namespace GetWebPageDate.Util
                     string order = info.Key;
 
                     YFOrderWriteInfo wItem = new YFOrderWriteInfo();
-                  
+
                     string content = request.HttpGet(string.Format(iUrl, order));
 
                     string addressInfo = CommonFun.GetValue(content, "<i class=\"fa fa-truck\"></i>收货人信息", "<div class=\"row\">");
@@ -1319,13 +1320,13 @@ namespace GetWebPageDate.Util
                         string nameInfo = CommonFun.GetValue(m.Value, "<td rowspan=\"1\" class=\"tdcenter lh24\" ", "</td>");
                         if (string.IsNullOrEmpty(nameInfo))
                         {
-                            break;
+                            continue;
                         }
                         string name = CommonFun.GetValue(nameInfo, "_blank\">", "</a>");
-                        
+
                         MatchCollection iMs = CommonFun.GetValues(m.Value, "<td rowspan=\"1\" class=\"tdcenter lh24\">", "<");
                         item.ViewCount = iMs[0].Value;
-                        
+
                         item.ID += name.Trim().Replace(" ", "").Replace("\r\n", "") + " ";
                         item.ID += iMs[1].Value.Trim() + " ";
                         item.ID += iMs[2].Value.Trim() + " ";
@@ -1404,7 +1405,7 @@ namespace GetWebPageDate.Util
 
                     string orderNO = item.Created;
                     string rank = Convert.ToString((int)TagColor.Green);
-                    string dec = wItem.BaseItem.Remark + string.Format("({0})",startOrderNO.ToString());
+                    string dec = wItem.BaseItem.Remark + string.Format("({0})", startOrderNO.ToString());
 
                     //if (!IsRedTag(item.ViewCount))
                     //{
@@ -1471,7 +1472,7 @@ namespace GetWebPageDate.Util
                     yfItem.SenderName = null;
                     yfItem.SenderPhoneNumber = null;
                     yfItem.ReceiverAddress = receiverStr;
-                  
+
                     CommonFun.WriteCSV(filePath + "send2_" + ticks + fileExtendName, item);
 
                     foreach (BaseItemInfo sItem in wItem.TotalItem)
@@ -1616,6 +1617,8 @@ namespace GetWebPageDate.Util
                 string content = request.HttpGet("https://www.yaofangwang.com/medicine-" + item.ItemName + ".html?sort=price&sorttype=asc", null, true);
 
                 string clickingRateStr = CommonFun.GetValue(content, "<dt>最近浏览</dt>", "</dd>");
+
+                clickingRateStr = CommonFun.GetValue(clickingRateStr, ">", "次");
 
                 clickingRateStr = string.IsNullOrEmpty(clickingRateStr) ? "0" : CommonFun.GetNum(clickingRateStr);
 
@@ -1847,7 +1850,7 @@ namespace GetWebPageDate.Util
                 bool opt = true;
 
                 Thread autoUpDownThread = new Thread(AutoUpDown);
-                autoUpDownThread.Start();
+                //autoUpDownThread.Start();
 
                 DateTime startTime = DateTime.MinValue;
 
@@ -1861,7 +1864,7 @@ namespace GetWebPageDate.Util
 
                             ticks = startTime.Ticks;
 
-                            Dictionary<string, BaseItemInfo> sItems = GetSellingItems();
+                            Dictionary<string, BaseItemInfo> sItems = GetSellingItems(!opt);
 
                             int count = 0;
                             foreach (BaseItemInfo item in sItems.Values)
@@ -1957,7 +1960,7 @@ namespace GetWebPageDate.Util
                     BaseItemInfo item = new BaseItemInfo();
 
 
-                    item.Type = CommonFun.GetValue(m.Value, "商品编号：", "</sanp>");
+                    item.Type = CommonFun.GetValue(m.Value, "商品编号：", "</span>");
 
                     MatchCollection iMs = CommonFun.GetValues(m.Value, "<div class=\"text-left\">", "</div>");
 
@@ -2119,17 +2122,18 @@ namespace GetWebPageDate.Util
                     }
 
                     MatchCollection ms = CommonFun.GetValues(content, "<input type=\"text\"", "/>");
-                    string authorizedCode = GetTextVaule(ms[0].Value);
-                    string namecn = GetTextVaule(ms[1].Value);
-                    string aliascn = GetTextVaule(ms[2].Value);
-                    string trocheType = GetTextVaule(ms[3].Value);
-                    string standard = GetTextVaule(ms[4].Value);
-                    string title = GetTextVaule(ms[5].Value);
-                    string number = GetTextVaule(ms[6].Value);
-                    string weight = GetTextVaule(ms[7].Value);
-                    string barcode = GetTextVaule(ms[8].Value);
+                    int index = 1;
+                    string authorizedCode = GetTextVaule(ms[index++].Value);
+                    string namecn = GetTextVaule(ms[index++].Value);
+                    string aliascn = GetTextVaule(ms[index++].Value);
+                    string trocheType = GetTextVaule(ms[index++].Value);
+                    string standard = GetTextVaule(ms[index++].Value);
+                    string title = GetTextVaule(ms[index++].Value);
+                    string number = GetTextVaule(ms[index++].Value);
+                    //string weight = GetTextVaule(ms[index++].Value);
+                    string barcode = GetTextVaule(ms[index++].Value);
                     string price = item.PlatformPrice.ToString(); // GetTextVaule(ms[9].Value);
-                    string max_buyqty = GetTextVaule(ms[10].Value);
+                    string max_buyqty = GetTextVaule(ms[++index].Value);
                     string reserve = item.Inventory;// GetTextVaule(ms[11].Value);
 
                     string scheduledDays = CommonFun.GetValue(content, "<select id=\"ddl_ScheduledDays\"", "</select>");
@@ -2160,7 +2164,7 @@ namespace GetWebPageDate.Util
                     string typeid = "0";
                     string periodTo = "";
 
-                    string postDateStr = "store_medicineid={0}&medicine_barcode={1}&authorized_code={2}&namecn={3}&standard={4}&troche_type={5}&aliascn={6}&scheduled_days={7}&store_medicine_status={8}&mill_title={9}&product_number={10}&weight={11}&store_medicine_typeid={12}&reserve={13}&max_buyqty=&price={14}&period_to=";
+                    string postDateStr = "store_medicineid={0}&medicine_barcode={1}&authorized_code={2}&namecn={3}&standard={4}&troche_type={5}&aliascn={6}&scheduled_days={7}&store_medicine_status={8}&mill_title={9}&product_number={10}&store_medicine_typeid={11}&reserve={12}&max_buyqty=&price={13}&period_to=";
 
                     postDateStr = string.Format(postDateStr,
                          item.ViewCount,
@@ -2174,7 +2178,6 @@ namespace GetWebPageDate.Util
                          status,
                          CommonFun.GetUrlEncode(title, false),
                          number,
-                         weight,
                          typeid,
                          reserve,
                          price);
@@ -2224,14 +2227,22 @@ namespace GetWebPageDate.Util
             {
                 Dictionary<string, BaseItemInfo> items = new Dictionary<string, BaseItemInfo>();
                 BaseItemInfo item = new BaseItemInfo();
-                item.ID = "注册证号H20160414";
-                item.ViewCount = "16323772";
-                item.Format = "50mgx10片x2板/盒";
-                item.Name = "盐酸伊托必利片";
-                item.Created = "MYLANEPDG.K.,KATSUYAMAPLANT";
-                item.Type = "2019";
-                item.Inventory = "8";
-                item.ItemName = "552603";
+                item.ID = "国药准字Z10940063";
+                item.ViewCount = "235";
+                item.Format = "10mlx24支/盒";
+                item.Name = "复方双花口服液";
+                item.Created = "北京康益药业有限公司";
+                item.Type = "T-2020";
+                item.Inventory = "31";
+                item.ItemName = "631691";
+                //item.ID = "注册证号H20160414";
+                //item.ViewCount = "16323772";
+                //item.Format = "50mgx10片x2板/盒";
+                //item.Name = "盐酸伊托必利片";
+                //item.Created = "MYLANEPDG.K.,KATSUYAMAPLANT";
+                //item.Type = "2019";
+                //item.Inventory = "8";
+                //item.ItemName = "552603";
                 items.Add("", item);
                 return items;
             }

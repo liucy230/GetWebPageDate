@@ -83,6 +83,16 @@ namespace GetWebPageDate.Util.Item
         public string ViewCount { get; set; }
 
         /// <summary>
+        /// 最大限价
+        /// </summary>
+        public double ShopPriceMax { get; set; }
+
+        /// <summary>
+        /// 最小限价
+        /// </summary>
+        public double ShopPriceMin { get; set; }
+
+        /// <summary>
         /// 备注
         /// </summary>
         public string Remark { get; set; }

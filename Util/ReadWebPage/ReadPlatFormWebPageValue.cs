@@ -15,6 +15,11 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Configuration;
 using GetWebPageDate.Util.Item;
+using APP_YFT.DataService;
+using YiBang.Framework.APP;
+using YiBang.Framework.APP.Caches;
+using YiBang.Framework.APP.Start;
+using APP_YFT.Base;
 
 namespace GetWebPageDate.Util
 {
@@ -258,7 +263,7 @@ namespace GetWebPageDate.Util
         {
             List<string> items = new List<string>();
 
-            string itemContent = CommonFun.GetValue(content, "<ul class=\"goodlist clearfix\">", "</ul>");
+            string itemContent = CommonFun.GetValue(content, "<ul class=\"goodlist_search clearfix\">", "</ul>");
 
             MatchCollection ms = CommonFun.GetValues(itemContent, "<li", " </li>");
 
@@ -311,7 +316,7 @@ namespace GetWebPageDate.Util
                     priceStr = priceStr.Trim();
                     string storeName = CommonFun.GetValue(m.Value, "<div class=\"shop\">", "</div>");
                     storeName = CommonFun.GetValue(storeName, "title=\"", "\"");
-                    if (!string.IsNullOrEmpty(inventoryStr) && !string.IsNullOrEmpty(priceStr) && !IsBlacklistStore(storeName) && storeName != selfName)
+                    if (!string.IsNullOrEmpty(inventoryStr) && !string.IsNullOrEmpty(priceStr) && !IsBlacklistStore(storeName) && !selfName.Contains(storeName))
                     {
                         if (Convert.ToInt32(inventoryStr) > inventoryMin)
                         {
@@ -464,6 +469,31 @@ namespace GetWebPageDate.Util
                 Console.WriteLine(ex);
             }
             return null;
+        }
+
+        public string SeachMedicineIdByID(string id, string format)
+        {
+            try
+            {
+                string url = string.Format("https://www.yaofangwang.com/search.html?keyword={0}", id);
+
+                string content = userRequest.HttpGet(url, null, true);
+
+                List<string> items = GetItemStr(content);
+
+                foreach (string item in items)
+                {
+                    if (format == CommonFun.GetValue(item, "规格：", "<"))
+                    {
+                        return CommonFun.GetValue(item, "href=\"//www.yaofangwang.com/medicine-", "\\.");
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex);
+            }
+            return "";
         }
 
         public List<BaseItemInfo> SeachInfoByID(string id, int inventoryMin = 5)
@@ -1330,11 +1360,12 @@ namespace GetWebPageDate.Util
                         item.ID += name.Trim().Replace(" ", "").Replace("\r\n", "") + " ";
                         item.ID += iMs[1].Value.Trim() + " ";
                         item.ID += iMs[2].Value.Trim() + " ";
-                        string priceStr = iMs[4].Value.Trim().Replace(" ", "");
+
+                        string priceStr = iMs[3].Value.Trim().Replace(" ", "");
                         priceStr = priceStr.Replace("¥", "");
                         //item.ShopPrice = Convert.ToDecimal(priceStr.Trim());
                         //item.ID += iMs[2].Value.Trim() + " ";
-                        string toPriceStr = iMs[6].Value.Trim().Replace(" ", "");
+                        string toPriceStr = iMs[4].Value.Trim().Replace(" ", "");
                         toPriceStr = toPriceStr.Replace("¥", "");
                         int itemCount = Convert.ToInt32(Convert.ToDecimal(toPriceStr) / Convert.ToDecimal(priceStr));
                         string stock = CommonFun.GetValue(m.Value, "库存：", "\"");
@@ -1604,7 +1635,7 @@ namespace GetWebPageDate.Util
                     item.PlatformPrice = CommonFun.TrunCate(item.ShopPrice * (decimal)0.99);
                 }
 
-                result = UpdateItemInfo(item);
+                result = ErpChangePrice(item); //UpdateItemInfo(item);
             } while (++doCount < 2 && !result);
 
             return result;
@@ -1652,7 +1683,7 @@ namespace GetWebPageDate.Util
                         {
                             OptUpdatePrice(item);
                         }
-                        Thread.Sleep(random.Next(5) * 1000);
+                        Thread.Sleep(random.Next(15, 20) * 1000);
                         CommonFun.WriteCSV(iFileName + ticks + fileExtendName, item);
                     }
                     else
@@ -1841,10 +1872,228 @@ namespace GetWebPageDate.Util
             }
         }
 
+        public void InitTCPConfig()
+        {
+            Common.TcpSetting = new TCPSetting
+            {
+                IP = "server-erp.yaofangwang.com",
+                Secret = "ybyz!@#LHL8!234!$%&^@#BD1974&65",
+                Port = 18280,
+                IsSSL = false,
+                BundleId = 2004,
+                VersionId = 0,
+                DbId = 2004
+            };
+            Common.TcpSetting_ForUpload = new TCPSetting
+            {
+                Upload_IP = "cdn.yaofangwang.com",
+                Upload_Port = 18480,
+                IsSSL = false
+            };
+        }
+
+        public bool ErpLogin()
+        {
+            try
+            {
+                AppFramework.Start(true);
+                InitTCPConfig();
+                Common.CurrentAccount = new APP_YFT.DataService.SYS_Account().Login(username1, password1);
+                new SYS_ShopConfig().LoadShopConfig(Common.CurrentAccount.ShopId);
+                if (Common.CurrentAccount != null)
+                {
+                    Console.WriteLine("ERP Login Sccussed!!!!!!");
+                }
+                return Common.CurrentAccount != null;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex);
+            }
+
+            return false;
+        }
+        /// <summary>
+        /// erp系统中加载在售数据
+        /// </summary>
+        /// <returns></returns>
+        public List<BaseItemInfo> ErpLoadShopData(int statu = 1)
+        {
+            try
+            {
+                APP_YFT.DataService.STK_StockBatch stk_StockBatch = new APP_YFT.DataService.STK_StockBatch();
+                string retailprice = "";
+                //if (this.NotSettingPrice)
+                //{
+                //    retailprice = "toquery";
+                //}
+                //string customerprice = "";
+                //if (this.SettingCustomerPrice)
+                //{
+                //    customerprice = "toquery";
+                //}
+                int totalCount;
+                List<object> priceList = stk_StockBatch.GetPriceList(null, new
+                {
+                    keywords = "",
+                    retailprice = retailprice,
+                    customerprice = "",
+                    RatioBegin = "",
+                    RatioEnd = ""
+                }, 9999, 1, out totalCount);
+
+                List<BaseItemInfo> items = new List<BaseItemInfo>();
+
+                APP_YFT.DataService.STK_ShopMedicine stk_ShopMedicine = new APP_YFT.DataService.STK_ShopMedicine();
+
+                int curCount = 0;
+                foreach (object itemObj in priceList)
+                {
+                    Console.WriteLine("TotalCount:{0},CurCount:{1} loading........", totalCount, ++curCount);
+
+                    string itemStr = itemObj.ToString();
+
+                    BaseItemInfo item = new BaseItemInfo();
+                    item.Inventory = CommonFun.GetValue(itemStr, "\"Reserve\": ", ",");
+                    item.ID = CommonFun.GetValue(itemStr, "\"AuthorizedCode\": \"", "\"");
+                    item.Name = CommonFun.GetValue(itemStr, "\"NameCN\": \"", "\"");
+                    //item.ItemName = CommonFun.GetValue(itemStr, "\"ShopId\": ", ",");
+                    item.ViewCount = CommonFun.GetValue(itemStr, "\"Id\": ", ",");
+                    item.Type = CommonFun.GetValue(itemStr, "ProductNumber\": \"", "\"");
+                    item.Format = CommonFun.GetValue(itemStr, "\"Standard\": \"", "\"");
+                    item.Created = CommonFun.GetValue(itemStr, "\"MillTitle\": \"", "\"");
+                    //在售列表
+
+                    if (statu == 1 && item.Inventory != "0")
+                    {
+                        int tryConCount = 0;
+                        bool isCon = false;
+                        do
+                        {
+                            try
+                            {
+                                APP_YFT.Model.STK_ShopMedicine stk_ShopMedicine2 = stk_ShopMedicine.Get(item.ViewCount);
+                                item.ItemName = stk_ShopMedicine2.MedicineId.ToString();
+                                if (item.ItemName == "-1")
+                                {
+                                    try
+                                    {
+                                        item.ItemName = SeachMedicineIdByID(item.ID, item.Format);
+                                    }
+                                    catch (Exception e)
+                                    {
+                                        Console.WriteLine(e);
+                                    }
+                                }
+                                //获取最大最小现价
+                                if (stk_ShopMedicine2.MedicineId > 0)
+                                {
+                                    List<string> shopPriceArea = stk_ShopMedicine.GetShopPriceArea(stk_ShopMedicine2.MedicineId.ToString());
+                                    item.ShopPriceMin = Convert.ToDouble(shopPriceArea[0]);
+                                    item.ShopPriceMax = Convert.ToDouble(shopPriceArea[1]);
+                                }
+                                else
+                                {
+                                    item.ShopPriceMin = 0.00;
+                                    item.ShopPriceMax = double.MaxValue;
+                                }
+                                isCon = true;
+
+                                //商城返利
+                                item.ReturnPrice = stk_ShopMedicine2.CashBackMoney;
+
+                                item.PlatformPrice = Convert.ToDecimal(CommonFun.GetValue(itemStr, "\"RetailPrice\": ", ","));
+
+                                item.ShopPrice = item.PlatformPrice - item.ReturnPrice;
+
+                                items.Add(item);
+
+                                //if (curCount % 2 == 0)
+                                //{
+                                //    Thread.Sleep(random.Next(1, 3) * 1000);
+                                //}
+                            }
+                            catch (Exception ex)
+                            {
+                                Console.WriteLine(ex);
+                                Thread.Sleep(random.Next(3, 5) * 1000);
+                            }
+                        } while (!isCon && tryConCount++ < 3);
+
+                        if (!isCon)
+                        {
+                            Console.WriteLine("load failed {0}..........", curCount);
+                        }
+                    }
+                    else if (statu == 2 && item.Inventory == "0")   //下架列表
+                    {
+                        items.Add(item);
+                    }
+                }
+
+                return items;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex);
+            }
+
+            return null;
+        }
+
+        public bool ErpChangePrice(BaseItemInfo item)
+        {
+            try
+            {
+                STK_StockBatch stk_StockBatch = new STK_StockBatch();
+
+                double num = Convert.ToDouble(item.PlatformPrice);  //出售价格
+                double num2 = Convert.ToDouble(item.ReturnPrice);  //商城优惠金额
+                string text = ""; //会员价
+
+                if (num2 >= num)
+                {
+                    MsgBox.Show("商城优惠金额需小于零售价！");
+                    return false;
+                }
+
+
+                STK_ShopMedicine stk_ShopMedicine = new STK_ShopMedicine();
+                APP_YFT.Model.STK_ShopMedicine stk_ShopMedicine2 = stk_ShopMedicine.Get(item.ViewCount);
+                if (stk_ShopMedicine2.MedicineType != 6)
+                {
+                    double num3 = num - num2;
+                    double num4 = Convert.ToDouble(item.ShopPriceMin);
+                    double num5 = Convert.ToDouble(item.ShopPriceMax);
+                    if (((num4 > 0.0 && num3 < num4) || (num5 > 0.0 && num3 > num5)) && !MsgBox.Show("温馨提示", string.Concat(new string[]
+					{
+						"商城价：",
+						num3.ToString("0.00"),
+						" 不在商城控价区间 [",
+						num4.ToString("0.00"),
+						" - ",
+						num5.ToString("0.00"),
+						"] 内，\r\n保存后商城商品将会被强制下架，确定保存吗？"
+					}), MsgBoxType.Warnning, MsgBoxShowType.OkAndCancel, "", "", ""))
+                    {
+                        return false;
+                    }
+                }
+
+                return (bool)stk_StockBatch.EditPrice(Convert.ToInt64(item.ViewCount), num, BaseViewModel.AccountInfo.RealName, text, num2);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex);
+            }
+
+            return false;
+        }
         public void UpdatePrice()
         {
             try
             {
+                ErpLogin();
                 Login(2);
 
                 bool opt = true;
@@ -1858,7 +2107,7 @@ namespace GetWebPageDate.Util
                 {
                     try
                     {
-                        if ((DateTime.Now - startTime).Hours > 2)
+                        if (startTime == DateTime.MinValue || (DateTime.Now - startTime).Hours > 2)
                         {
                             startTime = DateTime.Now;
 
@@ -2223,9 +2472,10 @@ namespace GetWebPageDate.Util
         /// <returns></returns>
         public Dictionary<string, BaseItemInfo> GetSellingItems(bool isTest = false)
         {
+            Dictionary<string, BaseItemInfo> items = new Dictionary<string, BaseItemInfo>();
+
             if (isTest)
             {
-                Dictionary<string, BaseItemInfo> items = new Dictionary<string, BaseItemInfo>();
                 BaseItemInfo item = new BaseItemInfo();
                 item.ID = "国药准字Z10940063";
                 item.ViewCount = "235";
@@ -2247,7 +2497,24 @@ namespace GetWebPageDate.Util
                 return items;
             }
 
-            return GetItemsByStatus(1);
+            List<BaseItemInfo> listItmes = ErpLoadShopData();
+
+            foreach (BaseItemInfo item in listItmes)
+            {
+                string key = item.ViewCount;
+                if (!items.ContainsKey(key))
+                {
+                    items.Add(key, item);
+                }
+                else
+                {
+                    Console.WriteLine("GetSelingItems is same item" + item.Name);
+                }
+            }
+
+            return items;
+
+            //return GetItemsByStatus(1);
         }
 
         /// <summary>
